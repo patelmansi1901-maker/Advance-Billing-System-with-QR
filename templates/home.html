@@ -1,0 +1,875 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BillFlow | Smart Billing & QR Management</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --navy: #10182d;
+            --navy-light: #192540;
+            --green: #b8f36b;
+            --green-dark: #83c93d;
+            --muted: #a9b4ca;
+            --white: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f7f9fc;
+            color: var(--navy);
+            overflow-x: hidden;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        .navbar {
+            width: 100%;
+            padding: 22px 7%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            background: #fff;
+            border-bottom: 1px solid #e9edf4;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            color: var(--navy);
+        }
+
+        .brand-icon {
+            width: 43px;
+            height: 43px;
+            border-radius: 14px;
+            background: var(--navy);
+            color: var(--green);
+            display: grid;
+            place-items: center;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .brand-name {
+            font: 800 24px 'Manrope', sans-serif;
+            letter-spacing: -1px;
+        }
+
+        .brand-name span {
+            color: #75ad36;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .nav-link {
+            color: #526078;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .nav-link:hover {
+            color: #6b9e30;
+        }
+
+        .nav-button {
+            padding: 12px 20px;
+            border-radius: 10px;
+            background: var(--navy);
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            transition: .2s;
+        }
+
+        .nav-button:hover {
+            background: #293957;
+            transform: translateY(-2px);
+        }
+
+        .hero {
+            background:
+                radial-gradient(ellipse at 85% 25%, rgba(184,243,107,.12), transparent 32%),
+                linear-gradient(135deg, #10182d 0%, #182744 60%, #203751 100%);
+            color: white;
+            padding: 78px 7% 85px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            width: 370px;
+            height: 370px;
+            border: 1px solid rgba(184,243,107,.12);
+            border-radius: 50%;
+            right: -120px;
+            bottom: -220px;
+            box-shadow: 0 0 0 45px rgba(184,243,107,.025),
+                        0 0 0 90px rgba(184,243,107,.02);
+        }
+
+        .hero-grid {
+            max-width: 1200px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 1.1fr .9fr;
+            align-items: center;
+            gap: 65px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 9px 13px;
+            border: 1px solid rgba(184,243,107,.25);
+            background: rgba(184,243,107,.07);
+            color: var(--green);
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.4px;
+            margin-bottom: 25px;
+        }
+
+        .eyebrow-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green);
+        }
+
+        h1 {
+            font: 800 clamp(39px, 5vw, 65px)/1.13 'Manrope', sans-serif;
+            letter-spacing: -2.8px;
+            max-width: 670px;
+            margin-bottom: 23px;
+        }
+
+        h1 span {
+            color: var(--green);
+        }
+
+        .hero-description {
+            color: #c0cadd;
+            font-size: 16px;
+            line-height: 1.9;
+            max-width: 540px;
+            margin-bottom: 31px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 13px;
+        }
+
+        .button {
+            min-height: 49px;
+            padding: 14px 21px;
+            border-radius: 11px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            transition: .2s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-3px);
+        }
+
+        .button-primary {
+            background: var(--green);
+            color: #172314;
+            box-shadow: 0 8px 24px rgba(184,243,107,.12);
+        }
+
+        .button-primary:hover {
+            background: #c9ff8a;
+        }
+
+        .button-secondary {
+            border: 1px solid #52617b;
+            color: white;
+        }
+
+        .button-secondary:hover {
+            background: rgba(255,255,255,.06);
+        }
+
+        .hero-note {
+            margin-top: 24px;
+            color: #9cabc1;
+            font-size: 12px;
+        }
+
+        .hero-note span {
+            color: var(--green);
+            margin-right: 7px;
+        }
+
+        /* Dashboard preview */
+
+        .preview-wrap {
+            position: relative;
+            max-width: 490px;
+            width: 100%;
+            margin: auto;
+        }
+
+        .preview-card {
+            background: #fff;
+            color: var(--navy);
+            border-radius: 21px;
+            padding: 23px;
+            box-shadow: 0 30px 90px rgba(0,0,0,.24);
+            transform: rotate(1deg);
+        }
+
+        .preview-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .preview-title {
+            font: 800 17px 'Manrope', sans-serif;
+        }
+
+        .preview-subtitle {
+            color: #8792a5;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .preview-badge {
+            background: #effbe4;
+            color: #548b22;
+            padding: 7px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .preview-stat {
+            padding: 19px;
+            border-radius: 15px;
+            background: #f4f7fb;
+            margin-bottom: 17px;
+        }
+
+        .preview-stat-label {
+            font-size: 12px;
+            color: #738098;
+            margin-bottom: 7px;
+        }
+
+        .preview-amount {
+            font: 800 32px 'Manrope', sans-serif;
+            letter-spacing: -1px;
+        }
+
+        .preview-growth {
+            font-size: 11px;
+            color: #5c9e29;
+            margin-top: 8px;
+            font-weight: 700;
+        }
+
+        .preview-bottom {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 13px;
+        }
+
+        .mini-card {
+            padding: 16px;
+            border: 1px solid #edf0f5;
+            border-radius: 13px;
+        }
+
+        .mini-icon {
+            width: 35px;
+            height: 35px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            background: #edf8e3;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .mini-card strong {
+            display: block;
+            font: 800 19px 'Manrope', sans-serif;
+        }
+
+        .mini-card small {
+            display: block;
+            color: #8390a4;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .floating-chip {
+            position: absolute;
+            right: -25px;
+            top: 45%;
+            background: white;
+            color: var(--navy);
+            padding: 13px 16px;
+            border-radius: 13px;
+            box-shadow: 0 15px 40px rgba(0,0,0,.17);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .floating-icon {
+            width: 33px;
+            height: 33px;
+            background: #edfadf;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            color: #5b922d;
+            font-size: 18px;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* Feature section */
+
+        .features {
+            padding: 76px 7% 85px;
+            max-width: 1440px;
+            margin: auto;
+        }
+
+        .section-heading {
+            text-align: center;
+            max-width: 640px;
+            margin: 0 auto 43px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #679c31;
+            letter-spacing: 2px;
+            margin-bottom: 13px;
+        }
+
+        h2 {
+            font: 800 clamp(28px, 3vw, 39px)/1.25 'Manrope', sans-serif;
+            letter-spacing: -1.2px;
+            margin-bottom: 13px;
+        }
+
+        .section-description {
+            color: #7b879a;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: white;
+            border: 1px solid #e9edf3;
+            padding: 27px;
+            border-radius: 17px;
+            transition: .25s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-6px);
+            border-color: #c8e9a7;
+            box-shadow: 0 17px 38px rgba(20,38,64,.07);
+        }
+
+        .feature-icon {
+            width: 49px;
+            height: 49px;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            background: #eff8e7;
+            font-size: 23px;
+            margin-bottom: 21px;
+        }
+
+        .feature-card h3 {
+            font: 800 17px 'Manrope', sans-serif;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            font-size: 13px;
+            line-height: 1.8;
+            color: #78859a;
+        }
+
+        .cta {
+            margin: 0 7% 75px;
+            padding: 38px 42px;
+            background: var(--green);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 25px;
+        }
+
+        .cta h2 {
+            font-size: clamp(23px, 3vw, 32px);
+            margin-bottom: 8px;
+        }
+
+        .cta p {
+            color: #425332;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .cta .button {
+            background: var(--navy);
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .footer {
+            background: #10182d;
+            padding: 27px 7%;
+            color: #9ba9bf;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            font-size: 12px;
+        }
+
+        .footer .brand-name {
+            color: white;
+            font-size: 19px;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-links a {
+            color: #b6c0d0;
+        }
+
+        .footer-links a:hover {
+            color: var(--green);
+        }
+
+        @media (max-width: 900px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+                gap: 50px;
+            }
+
+            .hero-content {
+                text-align: center;
+            }
+
+            .hero-description {
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+            }
+
+            .preview-wrap {
+                max-width: 470px;
+            }
+
+            .feature-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .floating-chip {
+                right: -5px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .navbar {
+                padding: 16px 5%;
+            }
+
+            .brand-name {
+                font-size: 21px;
+            }
+
+            .nav-right {
+                gap: 10px;
+            }
+
+            .nav-link {
+                display: none;
+            }
+
+            .nav-button {
+                padding: 11px 13px;
+                font-size: 12px;
+            }
+
+            .hero {
+                padding: 58px 5% 65px;
+            }
+
+            h1 {
+                font-size: 40px;
+                letter-spacing: -1.7px;
+            }
+
+            .hero-description {
+                font-size: 14px;
+            }
+
+            .button {
+                width: 100%;
+            }
+
+            .preview-card {
+                padding: 17px;
+            }
+
+            .preview-amount {
+                font-size: 27px;
+            }
+
+            .floating-chip {
+                right: -5px;
+                top: auto;
+                bottom: -20px;
+                padding: 10px;
+            }
+
+            .features {
+                padding: 65px 5%;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-card {
+                padding: 23px;
+            }
+
+            .cta {
+                margin: 0 5% 55px;
+                padding: 28px 23px;
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .footer {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .footer-links {
+                justify-content: center;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <header class="navbar">
+        <a href="{% url 'home' %}" class="brand">
+            <div class="brand-icon">QR</div>
+            <div class="brand-name">Bill<span>Flow</span></div>
+        </a>
+
+        <nav class="nav-right">
+            <a class="nav-link" href="#features">Features</a>
+            <a class="nav-link" href="{% url 'distributor_register' %}">
+                Create Account
+            </a>
+            <a class="nav-button" href="{% url 'admin_login' %}">
+                Admin Login ↗
+            </a>
+        </nav>
+    </header>
+
+    <!-- Hero -->
+    <main>
+        <section class="hero">
+            <div class="hero-grid">
+
+                <div class="hero-content">
+                    <div class="eyebrow">
+                        <span class="eyebrow-dot"></span>
+                        SMART BILLING. SIMPLIFIED.
+                    </div>
+
+                    <h1>
+                        Your business billing,
+                        <span>flowing better.</span>
+                    </h1>
+
+                    <p class="hero-description">
+                        Manage your billing operations, organize distributor
+                        accounts and keep customer information in one place.
+                        A smarter workspace for your everyday business.
+                    </p>
+
+                    <div class="hero-buttons">
+                        <a href="{% url 'admin_login' %}"
+                           class="button button-primary">
+                            Get Started <span>→</span>
+                        </a>
+
+                        <a href="{% url 'distributor_login' %}"
+                           class="button button-secondary">
+                            Distributor Login ↗
+                        </a>
+                    </div>
+
+                    <p class="hero-note">
+                        <span>✦</span>
+                        Simple workflows · Organized records · Easy access
+                    </p>
+                </div>
+
+                <!-- Visual dashboard preview -->
+                <div class="preview-wrap">
+                    <div class="preview-card">
+                        <div class="preview-top">
+                            <div>
+                                <div class="preview-title">
+                                    Business Overview
+                                </div>
+                                <div class="preview-subtitle">
+                                    Your billing workspace at a glance
+                                </div>
+                            </div>
+
+                            <div class="preview-badge">
+                                ● WORKSPACE
+                            </div>
+                        </div>
+
+                        <div class="preview-stat">
+                            <div class="preview-stat-label">
+                                Billing workspace
+                            </div>
+
+                            <div class="preview-amount">
+                                BillFlow<span style="color:#80b83f">.</span>
+                            </div>
+
+                            <div class="preview-growth">
+                                ✓ Built for organized billing
+                            </div>
+                        </div>
+
+                        <div class="preview-bottom">
+                            <div class="mini-card">
+                                <div class="mini-icon">▤</div>
+                                <strong>Billing</strong>
+                                <small>Manage operations</small>
+                            </div>
+
+                            <div class="mini-card">
+                                <div class="mini-icon">♙</div>
+                                <strong>Customers</strong>
+                                <small>Organize records</small>
+                            </div>
+
+                            <div class="mini-card">
+                                <div class="mini-icon">▦</div>
+                                <strong>QR Ready</strong>
+                                <small>QR-focused branding</small>
+                            </div>
+
+                            <div class="mini-card">
+                                <div class="mini-icon">✓</div>
+                                <strong>Accounts</strong>
+                                <small>Role-based access</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="floating-chip">
+                        <div class="floating-icon">✦</div>
+                        <div>
+                            Made for your business
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="features" id="features">
+            <div class="section-heading">
+                <div class="section-label">WHY BILLFLOW?</div>
+
+                <h2>
+                    Everything starts with
+                    <br>better organization.
+                </h2>
+
+                <p class="section-description">
+                    A clean and simple place to manage the essential
+                    parts of your billing workflow.
+                </p>
+            </div>
+
+            <div class="feature-grid">
+                <article class="feature-card">
+                    <div class="feature-icon">▤</div>
+                    <h3>Billing Workspace</h3>
+                    <p>
+                        Keep your billing workflow organized with a dedicated
+                        space designed for everyday business operations.
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">♙</div>
+                    <h3>Customer Records</h3>
+                    <p>
+                        Keep customer names, contact details and billing
+                        addresses organized for easy reference.
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">▦</div>
+                    <h3>QR-Focused Design</h3>
+                    <p>
+                        A modern interface built around the BillFlow
+                        billing and QR management project.
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">♧</div>
+                    <h3>Distributor Accounts</h3>
+                    <p>
+                        Provide distributors with their own registration,
+                        login and profile experience.
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">⌘</div>
+                    <h3>Role-Based Access</h3>
+                    <p>
+                        Separate administrator and distributor entry points
+                        for a more structured application.
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">◎</div>
+                    <h3>Simple Experience</h3>
+                    <p>
+                        Navigate the application through a clear layout,
+                        helpful actions and responsive page design.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <!-- Call to action -->
+        <section class="cta">
+            <div>
+                <h2>Ready to enter your workspace?</h2>
+                <p>
+                    Sign in to BillFlow or create a distributor account
+                    to get started.
+                </p>
+            </div>
+
+            <a href="{% url 'distributor_register' %}" class="button">
+                Create Distributor Account →
+            </a>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <a href="{% url 'home' %}" class="brand">
+            <div class="brand-icon">QR</div>
+            <div class="brand-name">Bill<span>Flow</span></div>
+        </a>
+
+        <div>© 2026 BillFlow. Built with Python &amp; Django.</div>
+
+        <div class="footer-links">
+            <a href="{% url 'admin_login' %}">Admin</a>
+            <a href="{% url 'distributor_login' %}">Distributor</a>
+            <a href="#features">Features</a>
+        </div>
+    </footer>
+
+</body>
+</html>

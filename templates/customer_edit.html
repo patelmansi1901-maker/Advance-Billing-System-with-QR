@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Customer | Billing System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px 15px;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: 0 auto;
+            padding: 30px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #1d4ed8;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 25px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 7px;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .save {
+            background: #2563eb;
+            color: white;
+        }
+
+        .cancel {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .message {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 7px;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .full-width {
+                grid-column: auto;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <h1>Edit Customer</h1>
+    <p class="subtitle">Update the customer's information below.</p>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="message">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="form-grid">
+            <div class="field">
+                <label for="name">Customer Name *</label>
+                <input type="text" id="name" name="name"
+                       value="{{ customer.name }}" required>
+            </div>
+
+            <div class="field">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email"
+                       value="{{ customer.email }}" required>
+            </div>
+
+            <div class="field">
+                <label for="phone">Phone *</label>
+                <input type="tel" id="phone" name="phone"
+                       value="{{ customer.phone }}" required>
+            </div>
+
+            <div class="field">
+                <label for="gst_number">GST Number</label>
+                <input type="text" id="gst_number" name="gst_number"
+                       value="{{ customer.gst_number|default_if_none:'' }}">
+            </div>
+
+            <div class="field full-width">
+                <label for="address">Address *</label>
+                <textarea id="address" name="address"
+                          required>{{ customer.address }}</textarea>
+            </div>
+
+            <div class="field">
+                <label for="city">City *</label>
+                <input type="text" id="city" name="city"
+                       value="{{ customer.city }}" required>
+            </div>
+
+            <div class="field">
+                <label for="state">State *</label>
+                <input type="text" id="state" name="state"
+                       value="{{ customer.state }}" required>
+            </div>
+
+            <div class="field">
+                <label for="postal_code">Postal Code *</label>
+                <input type="text" id="postal_code" name="postal_code"
+                       value="{{ customer.postal_code }}" required>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn save">Save Changes</button>
+            <a href="{% url 'customer_list' %}" class="btn cancel">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

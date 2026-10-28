@@ -1,0 +1,304 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Product | Advance Billing System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f2f5fb;
+            color: #17233c;
+        }
+
+        .navbar {
+            background: #172554;
+            color: white;
+            padding: 20px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            font-size: 21px;
+            font-weight: bold;
+        }
+
+        .brand span {
+            color: #67e8f9;
+        }
+
+        .navbar small {
+            color: #cbd5e1;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 18px;
+        }
+
+        .heading {
+            margin-bottom: 24px;
+        }
+
+        .heading h1 {
+            margin: 0 0 8px;
+            font-size: 30px;
+        }
+
+        .heading p {
+            margin: 0;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+        }
+
+        .section-title {
+            font-size: 17px;
+            margin: 5px 0 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        .field {
+            min-width: 0;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 13px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            color: #17233c;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px #dbeafe;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+        }
+
+        .help {
+            display: block;
+            margin-top: 6px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .error {
+            color: #b91c1c;
+            display: block;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+
+        .error-box {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .success {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-row label {
+            margin: 0;
+        }
+
+        .form-check-input {
+            width: 17px;
+            height: 17px;
+            accent-color: #2563eb;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 28px;
+            padding-top: 22px;
+            border-top: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-block;
+            border: 0;
+            border-radius: 8px;
+            padding: 12px 20px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            color: white;
+            background: #2563eb;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            color: #334155;
+            background: #e2e8f0;
+        }
+
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .full-width {
+                grid-column: auto;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .heading h1 {
+                font-size: 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="navbar">
+        <div class="brand">QR <span>BillPro</span></div>
+        <small>Product Management</small>
+    </header>
+
+    <main class="container">
+        <div class="heading">
+            <h1>Add New Product</h1>
+            <p>Enter product details, pricing, GST and available stock.</p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="success">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="card">
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="error-box">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <h2 class="section-title">Basic Information</h2>
+
+                <div class="form-grid">
+                    {% for field in form %}
+                        <div class="field
+                            {% if field.name == 'description' %}full-width{% endif %}
+                            {% if field.name == 'is_active' %}full-width{% endif %}">
+
+                            {% if field.name == 'is_active' %}
+                                <div class="checkbox-row">
+                                    {{ field }}
+                                    <label for="{{ field.id_for_label }}">
+                                        {{ field.label }}
+                                    </label>
+                                </div>
+                            {% else %}
+                                <label for="{{ field.id_for_label }}">
+                                    {{ field.label }}
+                                    {% if field.field.required %}*{% endif %}
+                                </label>
+
+                                {{ field }}
+                            {% endif %}
+
+                            {% if field.help_text %}
+                                <small class="help">{{ field.help_text }}</small>
+                            {% endif %}
+
+                            {% for error in field.errors %}
+                                <span class="error">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {% if form.errors %}
+                    <div class="error-box" style="margin-top: 20px;">
+                        Please check the highlighted fields and try again.
+                    </div>
+                {% endif %}
+
+                <div class="actions">
+                    <button type="reset" class="btn btn-secondary">
+                        Clear Form
+                    </button>
+
+                    <button type="submit" class="btn btn-primary">
+                        Save Product
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+</body>
+</html>

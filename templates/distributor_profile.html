@@ -1,0 +1,189 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | BillFlow</title>
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <style>
+        .profile-page {
+            min-height: 100vh;
+            padding: 40px 20px;
+            box-sizing: border-box;
+        }
+
+        .profile-container {
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        .profile-card {
+            padding: 32px;
+            border-radius: 16px;
+        }
+
+        .profile-heading {
+            margin-bottom: 24px;
+        }
+
+        .profile-avatar {
+            width: 75px;
+            height: 75px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #ccfbf1;
+            color: #0f766e;
+            font-size: 30px;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+
+        .profile-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 17px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .profile-label {
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .profile-value {
+            color: #0f172a;
+            text-align: right;
+            overflow-wrap: anywhere;
+        }
+
+        .profile-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #ccfbf1;
+            color: #115e59;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .profile-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .profile-button {
+            display: inline-block;
+            padding: 12px 18px;
+            border-radius: 9px;
+            background: #0d9488;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .profile-button:hover {
+            background: #0f766e;
+        }
+
+        .profile-secondary {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        @media (max-width: 500px) {
+            .profile-card {
+                padding: 22px;
+            }
+
+            .profile-row {
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .profile-value {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+
+<body class="login-page profile-page">
+
+    <main class="profile-container">
+
+        <a class="brand" href="/">
+            <span class="brand-icon">QR</span>
+            <span>BillFlow</span>
+        </a>
+
+        <section class="login-card profile-card">
+
+            <div class="profile-heading">
+                <div class="profile-avatar">
+                    {{ user.first_name|default:user.username|first|upper }}
+                </div>
+
+                <p class="eyebrow">DISTRIBUTOR ACCOUNT</p>
+                <h1>My Profile</h1>
+                <p>View your registered account information.</p>
+            </div>
+
+            <div class="profile-row">
+                <span class="profile-label">Full Name</span>
+                <span class="profile-value">
+                    {{ user.get_full_name|default:user.username }}
+                </span>
+            </div>
+
+            <div class="profile-row">
+                <span class="profile-label">Email Address</span>
+                <span class="profile-value">{{ user.email }}</span>
+            </div>
+
+            <div class="profile-row">
+                <span class="profile-label">Phone Number</span>
+                <span class="profile-value">{{ profile.phone }}</span>
+            </div>
+
+            <div class="profile-row">
+                <span class="profile-label">Username</span>
+                <span class="profile-value">{{ user.username }}</span>
+            </div>
+
+            <div class="profile-row">
+                <span class="profile-label">Account Type</span>
+                <span class="profile-value">
+                    <span class="profile-badge">Distributor</span>
+                </span>
+            </div>
+
+            <div class="profile-actions">
+                <a href="{% url 'distributor_dashboard' %}"
+                   class="profile-button">
+                    Back to Dashboard
+                </a>
+
+                <a href="{% url 'home' %}"
+                   class="profile-button profile-secondary">
+                    Home
+                </a>
+            </div>
+            <a href="{% url 'update_distributor_profile' %}"
+                class="profile-button">
+                Edit Profile
+            </a>
+
+        </section>
+    </main>
+
+</body>
+</html>

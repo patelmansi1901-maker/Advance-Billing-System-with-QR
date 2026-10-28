@@ -1,0 +1,102 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Distributor Login | BillFlow</title>
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script src="{% static 'js/login.js' %}" defer></script>
+</head>
+
+<body class="login-page">
+    <main class="login-card">
+
+        <a class="brand" href="/">
+            <span class="brand-icon">QR</span>
+            <span>BillFlow</span>
+        </a>
+
+        <div class="role-icon distributor-icon">⇄</div>
+
+        <p class="eyebrow">PARTNER PORTAL</p>
+        <h1>Distributor Login</h1>
+        <p class="subtitle">
+            Access your distribution and billing workspace.
+        </p>
+
+        <!-- Display Django messages -->
+        {% if messages %}
+    {% for message in messages %}
+        <div class="register-message {{ message.tags }}" role="alert">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+        <!-- Distributor Login Form -->
+        <form method="post" action="{% url 'distributor_login' %}">
+            {% csrf_token %}
+
+            <label for="username">Email or Username</label>
+            <input
+                type="text"
+                id="username"
+                name="username"
+                placeholder="Enter your email or username"
+                autocomplete="username"
+                required
+            >
+
+            <label for="password">Password</label>
+
+            <div class="password-wrap">
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <button
+                    type="button"
+                    class="toggle-password"
+                    data-target="password"
+                    aria-label="Show or hide password"
+                >Show</button>
+            </div>
+
+            <button
+                type="submit"
+                class="login-button distributor-button"
+            >
+                Sign In as Distributor →
+            </button>
+        </form>
+
+        <p class="switch-role">
+            System administrator?
+            <a href="{% url 'admin_login' %}">
+                Admin login
+            </a>
+        </p>
+
+        <p class="switch-role">
+            Forgot your password?
+            <a href="{% url 'forgot_password' %}">
+                Reset here
+            </a>
+        <a class="back-home" href="/">
+            ← Back to home
+        </a>
+
+        <footer>
+            Secure partner access · Billing System With QR
+        </footer>
+
+    </main>
+</body>
+</html>

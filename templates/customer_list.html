@@ -1,0 +1,306 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer List | BillFlow</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            font-family: Arial, sans-serif;
+            background: #f3f6fc;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: #64748b;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 18px;
+            background: #4f46e5;
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background: #3730a3;
+        }
+
+        .stats {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            margin-bottom: 22px;
+            box-shadow: 0 3px 12px #0f172a0a;
+        }
+
+        .stats span {
+            display: block;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .stats strong {
+            font-size: 30px;
+            color: #4f46e5;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 3px 12px #0f172a0a;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 22px;
+        }
+
+        .search-form input {
+            flex: 1;
+            min-width: 0;
+            padding: 12px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .search-form input:focus {
+            border-color: #4f46e5;
+        }
+
+        .clear-link {
+            align-self: center;
+            color: #4f46e5;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        th {
+            background: #eef2ff;
+            color: #3730a3;
+            text-align: left;
+            padding: 15px 12px;
+            font-size: 13px;
+        }
+
+        td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background: #f8faff;
+        }
+
+        .customer-name {
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px 15px;
+            color: #64748b;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 22px;
+            color: #4f46e5;
+            text-decoration: none;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 16px;
+            }
+
+            .header h1 {
+                font-size: 23px;
+            }
+
+            .table-card {
+                padding: 14px;
+            }
+
+            .search-form {
+                flex-wrap: wrap;
+            }
+
+            .search-form input {
+                flex-basis: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <header class="header">
+            <div>
+                <h1>Customer Management</h1>
+                <p class="subtitle">
+                    View and search your BillFlow customers.
+                </p>
+            </div>
+
+            <a href="{% url 'customer_add' %}" class="btn">
+                + Add Customer
+            </a>
+        </header>
+
+        <section class="stats">
+            <span>Customers Found</span>
+            <strong>{{ total_customers }}</strong>
+        </section>
+
+        <section class="table-card">
+
+            <form method="GET"
+                  action="{% url 'customer_list' %}"
+                  class="search-form">
+
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ search_query }}"
+                    placeholder="Search by name, email, phone or GST number..."
+                    aria-label="Search customers"
+                >
+
+                <button type="submit" class="btn">
+                    Search
+                </button>
+                
+                <a href="{% url 'customer_list' %}">
+                    View All Customers
+                </a>
+
+                {% if search_query %}
+                    <a href="{% url 'customer_list' %}"
+                       class="clear-link">
+                        Clear
+                    </a>
+                {% endif %}
+            </form>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Customer Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>City</th>
+                            <th>GST Number</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for customer in customers %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+
+                                <td class="customer-name">
+                                    {{ customer.name }}
+                                </td>
+
+                                <td>
+                                    {{ customer.email|default:"—" }}
+                                </td>
+
+                                <td>
+                                    {{ customer.phone|default:"—" }}
+                                </td>
+
+                                <td>
+                                    {{ customer.city|default:"—" }}
+                                </td>
+
+                                <td>
+                                    {{ customer.gst_number|default:"—" }}
+                                </td>
+                            </tr>
+                            <td>
+                                <a href="{% url 'customer_edit' customer.id %}">
+                                    Edit
+                                </a>
+                            </td>
+
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="empty">
+                                    {% if search_query %}
+                                        No customers found for
+                                        "{{ search_query }}".
+                                        Try another search.
+                                    {% else %}
+                                        No customers available yet.
+                                        Add your first customer to get started.
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <a href="{% url 'home' %}" class="back-link">
+            ← Back to Home
+        </a>
+
+    </div>
+</body>
+</html>

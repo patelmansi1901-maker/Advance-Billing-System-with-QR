@@ -1,0 +1,308 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Customer | BillFlow</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <style>
+        .customer-page {
+            min-height: 100vh;
+            padding: 35px 20px;
+            box-sizing: border-box;
+        }
+
+        .customer-card {
+            max-width: 760px;
+            margin: 25px auto;
+            padding: 32px;
+            box-sizing: border-box;
+        }
+
+        .customer-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .customer-field label {
+            display: block;
+            margin: 14px 0 7px;
+            font-weight: 600;
+        }
+
+        .customer-field input,
+        .customer-field textarea {
+            width: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #cbd5e1;
+            border-radius: 9px;
+            font: inherit;
+        }
+
+        .customer-field textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .customer-field input:focus,
+        .customer-field textarea:focus {
+            outline: 2px solid #14b8a6;
+            border-color: #14b8a6;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .field-error {
+            color: #dc2626;
+            font-size: 13px;
+            margin: 5px 0 0;
+        }
+
+        .success-alert {
+            padding: 13px;
+            margin: 16px 0;
+            border-radius: 8px;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .error-alert {
+            padding: 13px;
+            margin: 16px 0;
+            border-radius: 8px;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .customer-button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 24px;
+            border: 0;
+            border-radius: 9px;
+            background: #0d9488;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .customer-button:hover {
+            background: #0f766e;
+        }
+
+        .customer-footer {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .customer-footer a {
+            color: #0d9488;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .customer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .customer-card {
+                padding: 22px;
+            }
+
+            .full-width {
+                grid-column: auto;
+            }
+        }
+    </style>
+</head>
+
+<body class="login-page customer-page">
+    <main class="login-card customer-card">
+
+        <a class="brand" href="/">
+            <span class="brand-icon">QR</span>
+            <span>BillFlow</span>
+        </a>
+
+        <p class="eyebrow">CUSTOMER MANAGEMENT</p>
+        <h1>Add New Customer</h1>
+        <p>Enter the customer's details below.</p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div
+                    class="{% if message.tags == 'success' %}success-alert{% else %}error-alert{% endif %}"
+                    role="alert"
+                >
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if errors.general %}
+            <div class="error-alert" role="alert">
+                {{ errors.general }}
+            </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'customer_add' %}">
+            {% csrf_token %}
+
+            <div class="customer-grid">
+
+                <div class="customer-field">
+                    <label for="name">Customer Name *</label>
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value="{{ values.name|default:'' }}"
+                        required
+                        minlength="2"
+                        maxlength="100"
+                    >
+                    {% if errors.name %}
+                        <p class="field-error">{{ errors.name }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="customer-field">
+                    <label for="email">Email Address *</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value="{{ values.email|default:'' }}"
+                        required
+                        maxlength="254"
+                    >
+                    {% if errors.email %}
+                        <p class="field-error">{{ errors.email }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="customer-field">
+                    <label for="phone">Phone Number *</label>
+                    <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value="{{ values.phone|default:'' }}"
+                        required
+                        pattern="[0-9]{10}"
+                        maxlength="10"
+                        inputmode="numeric"
+                        title="Enter exactly 10 digits."
+                    >
+                    {% if errors.phone %}
+                        <p class="field-error">{{ errors.phone }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="customer-field">
+                    <label for="gst_number">GST Number (Optional)</label>
+                    <input
+                        type="text"
+                        id="gst_number"
+                        name="gst_number"
+                        value="{{ values.gst_number|default:'' }}"
+                        maxlength="15"
+                        pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][A-Za-z0-9][Zz][A-Za-z0-9]"
+                        title="Enter a valid 15-character GSTIN or leave blank."
+                    >
+                    {% if errors.gst_number %}
+                        <p class="field-error">{{ errors.gst_number }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="customer-field full-width">
+                    <label for="address">Billing Address *</label>
+                    <textarea
+                        id="address"
+                        name="address"
+                        required
+                        maxlength="500"
+                    >{{ values.address|default:'' }}</textarea>
+                    {% if errors.address %}
+                        <p class="field-error">{{ errors.address }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="customer-field">
+                    <label for="city">City *</label>
+                    <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        value="{{ values.city|default:'' }}"
+                        required
+                        maxlength="100"
+                    >
+                    {% if errors.city %}
+                        <p class="field-error">{{ errors.city }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="customer-field">
+                    <label for="state">State *</label>
+                    <input
+                        type="text"
+                        id="state"
+                        name="state"
+                        value="{{ values.state|default:'' }}"
+                        required
+                        maxlength="100"
+                    >
+                    {% if errors.state %}
+                        <p class="field-error">{{ errors.state }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="customer-field">
+                    <label for="postal_code">PIN Code *</label>
+                    <input
+                        type="text"
+                        id="postal_code"
+                        name="postal_code"
+                        value="{{ values.postal_code|default:'' }}"
+                        required
+                        pattern="[0-9]{6}"
+                        maxlength="6"
+                        inputmode="numeric"
+                        title="Enter a 6-digit PIN code."
+                    >
+                    {% if errors.postal_code %}
+                        <p class="field-error">{{ errors.postal_code }}</p>
+                    {% endif %}
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-danger">
+                    {{ message }}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+
+            </div>
+
+            <button type="submit" class="customer-button">
+                Save Customer
+            </button>
+        </form>
+
+        <div class="customer-footer">
+            <a href="/">← Back to Home</a>
+        </div>
+
+    </main>
+</body>
+</html>

@@ -1,0 +1,488 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Product List | Advance Billing System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f6fc;
+            color: #17233c;
+        }
+
+        .navbar {
+            background: #172554;
+            color: white;
+            padding: 20px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .brand {
+            font-size: 21px;
+            font-weight: bold;
+        }
+
+        .brand span {
+            color: #67e8f9;
+        }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            background: #2563eb;
+            padding: 11px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1250px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .summary {
+            background: #dbeafe;
+            color: #1d4ed8;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 22px;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 0;
+            padding: 12px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px #dbeafe;
+        }
+
+        .btn {
+            display: inline-block;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-light {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #475569;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background: #f8fbff;
+        }
+
+        .product-name {
+            font-weight: bold;
+            color: #172554;
+        }
+
+        .product-code {
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .price {
+            font-weight: bold;
+        }
+
+        .stock-badge, .status-badge {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .stock-ok, .status-active {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .stock-low {
+            color: #92400e;
+            background: #fef3c7;
+        }
+
+        .stock-out, .status-inactive {
+            color: #991b1b;
+            background: #fee2e2;
+        }
+
+        .empty {
+            padding: 45px 15px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        .empty h3 {
+            color: #17233c;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 24px;
+        }
+
+        .page-link {
+            padding: 9px 13px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            text-decoration: none;
+            color: #334155;
+            font-size: 13px;
+        }
+
+        .page-link.current {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+
+        .page-link.disabled {
+            color: #94a3b8;
+            background: #f8fafc;
+        }
+
+        .page-info {
+            color: #64748b;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 0 12px;
+                margin-top: 22px;
+            }
+
+            .card {
+                padding: 14px;
+            }
+
+            .search-form {
+                flex-wrap: wrap;
+            }
+
+            .search-input {
+                flex-basis: 100%;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="brand">QR <span>BillPro</span></div>
+
+    <a class="nav-link" href="{% url 'add_product' %}">
+        + Add New Product
+    </a>
+</header>
+
+<main class="container">
+
+    <div class="heading">
+        <div>
+            <h1>Product Management</h1>
+            <p class="subtitle">
+                Search, view and manage your inventory products.
+            </p>
+        </div>
+
+        <div class="summary">
+            {{ total_products }} product{{ total_products|pluralize }}
+        </div>
+    </div>
+
+    <section class="card">
+
+        <form method="get"
+              action="{% url 'product_list' %}"
+              class="search-form">
+
+            <input
+                type="search"
+                name="q"
+                class="search-input"
+                placeholder="Search by name, code, barcode or category..."
+                value="{{ search_query }}"
+                aria-label="Search products"
+            >
+
+            <button type="submit" class="btn btn-primary">
+                Search
+            </button>
+
+            {% if search_query %}
+                <a href="{% url 'product_list' %}"
+                   class="btn btn-light">
+                    Clear
+                </a>
+            {% endif %}
+        </form>
+
+        {% if page_obj.object_list %}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>GST</th>
+                            <th>Stock</th>
+                            <th>Unit</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for product in page_obj %}
+                            <tr>
+                                <td>
+                                    <div class="product-name">
+                                        {{ product.name }}
+                                    </div>
+                                    <div class="product-code">
+                                        {{ product.product_code }}
+                                    </div>
+                                </td>
+
+                                <td>{{ product.category.name }}</td>
+
+                                <td class="price">
+                                    ₹{{ product.price|floatformat:2 }}
+                                </td>
+
+                                <td>{{ product.get_gst_rate_display }}</td>
+
+                                <td>
+                                    {% if product.stock == 0 %}
+                                        <span class="stock-badge stock-out">
+                                            Out of stock
+                                        </span>
+                                    {% elif product.stock <= 5 %}
+                                        <span class="stock-badge stock-low">
+                                            {{ product.stock }}
+                                        </span>
+                                    {% else %}
+                                        <span class="stock-badge stock-ok">
+                                            {{ product.stock }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>{{ product.get_unit_display }}</td>
+
+                                <td>
+                                    {% if product.is_active %}
+                                        <span class="status-badge status-active">
+                                            Active
+                                        </span>
+                                    {% else %}
+                                        <span class="status-badge status-inactive">
+                                            Inactive
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="page-info">
+                Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+                of {{ total_products }} products
+            </div>
+
+            <nav class="pagination" aria-label="Product pagination">
+
+                {% if page_obj.has_previous %}
+                    <a class="page-link"
+                       href="?{% if search_query %}q={{ search_query|urlencode }}&amp;{% endif %}page=1">
+                        First
+                    </a>
+
+                    <a class="page-link"
+                       href="?{% if search_query %}q={{ search_query|urlencode }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">
+                        Previous
+                    </a>
+                {% else %}
+                    <span class="page-link disabled">First</span>
+                    <span class="page-link disabled">Previous</span>
+                {% endif %}
+
+                {% for number in page_obj.paginator.page_range %}
+                    {% if number == page_obj.number %}
+                        <span class="page-link current"
+                              aria-current="page">
+                            {{ number }}
+                        </span>
+                    {% elif number >= page_obj.number|add:"-2" and number <= page_obj.number|add:"2" %}
+                        <a class="page-link"
+                           href="?{% if search_query %}q={{ search_query|urlencode }}&amp;{% endif %}page={{ number }}">
+                            {{ number }}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <a class="page-link"
+                       href="?{% if search_query %}q={{ search_query|urlencode }}&amp;{% endif %}page={{ page_obj.next_page_number }}">
+                        Next
+                    </a>
+
+                    <a class="page-link"
+                       href="?{% if search_query %}q={{ search_query|urlencode }}&amp;{% endif %}page={{ page_obj.paginator.num_pages }}">
+                        Last
+                    </a>
+                {% else %}
+                    <span class="page-link disabled">Next</span>
+                    <span class="page-link disabled">Last</span>
+                {% endif %}
+
+            </nav>
+
+        {% else %}
+            <div class="empty">
+                <h3>No products found</h3>
+
+                {% if search_query %}
+                    <p>
+                        No products match "{{ search_query }}".
+                        Try another search term.
+                    </p>
+
+                    <a href="{% url 'product_list' %}"
+                       class="btn btn-light">
+                        Show All Products
+                    </a>
+                {% else %}
+                    <p>
+                        You have not added any products yet.
+                        Start by adding your first product.
+                    </p>
+
+                    <a href="{% url 'add_product' %}"
+                       class="btn btn-primary">
+                        + Add Your First Product
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+
+    </section>
+</main>
+
+</body>
+</html>
