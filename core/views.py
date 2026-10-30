@@ -8,6 +8,10 @@ from django.contrib.auth import (
     logout,
 )
 import re
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.contrib.auth.models import Group
 from django.shortcuts import render
 from django.contrib.auth.decorators import user_passes_test
 from django.core.paginator import Paginator
@@ -35,6 +39,8 @@ from .models import PasswordResetOTP
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from .models import DistributorProfile
+from decimal import Decimal
+from .forms import InvoiceForm, InvoiceItemFormSet
 
 User = get_user_model()
 
@@ -289,48 +295,47 @@ def admin_login(request):
 # ---------------- DISTRIBUTOR LOGIN ----------------
 
 def distributor_login(request):
+    # If the user is already logged in as a Distributor
     if request.user.is_authenticated:
-        if is_distributor(request.user):
-            return redirect('distributor_dashboard')
+        if request.user.groups.filter(name="Distributor").exists():
+            return redirect("distributor_dashboard")
 
-        if is_admin(request.user):
-            return redirect('admin_dashboard')
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
 
-        logout(request)
+        # Initialize the variable before using it
+        matching_user = None
 
-    if request.method == 'POST':
-        
-       login_value = request.POST.get("username", "").strip()
-       password = request.POST.get("password", "")
-
-# Allow login using either username or email.
-       username = login_value
-
-       if "@" in login_value:
-        matching_user = User.objects.filter(
-        email__iexact=login_value
-    ).first()
-
-    if matching_user:
-        username = matching_user.username
-
-    user = authenticate(
-    request,
-    username=username,
-    password=password,
-)
-
-    if user is not None and is_distributor(user):
-            login(request, user)
-            return redirect('distributor_dashboard')
-
-    messages.error(
+        # Authenticate the submitted credentials
+        matching_user = authenticate(
             request,
-            'Invalid credentials or distributor access not permitted.'
+            username=username,
+            password=password
         )
 
-    return render(request, 'distributor_login.html')
+        if matching_user is not None:
+            # Allow only users belonging to the Distributor group
+            if matching_user.groups.filter(name="Distributor").exists():
+                login(request, matching_user)
+                messages.success(
+                    request,
+                    "Welcome! You have logged in successfully."
+                )
+                return redirect("distributor_dashboard")
 
+            messages.error(
+                request,
+                "Access denied. This account is not registered as a Distributor."
+            )
+        else:
+            messages.error(
+                request,
+                "Invalid username or password."
+            )
+
+    # Display the login page for GET requests
+    return render(request, "distributor_login.html")
 
 @login_required(login_url="distributor_login")
 def distributor_profile(request):
@@ -927,6 +932,172 @@ def product_list(request):
         context
     )
 
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from .models import Product
+from .forms import ProductUpdateForm
+
+
+def update_product(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+
+    if request.method == "POST":
+        form = ProductUpdateForm(
+            request.POST,
+            instance=product
+        )
+
+        if form.is_valid():
+            form.save()
+
+            messages.success(
+                request,
+                f"Product '{product.name}' updated successfully!"
+            )
+
+            return redirect("product_list")
+
+    else:
+        form = ProductUpdateForm(instance=product)
+
+    return render(
+        request,
+        "update_product.html",
+        {
+            "form": form,
+            "product": product,
+        }
+    )
+
+
+@require_POST
+def delete_product(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+
+    product_name = product.name
+    product.delete()
+
+    messages.success(
+        request,
+        f"Product '{product_name}' deleted successfully!"
+    )
+
+    return redirect("product_list")
+
+
+@login_required
+def invoice_create(request):
+
+    # Fetch all products from the database for JavaScript
+    products = Product.objects.all()
+
+    product_data = [
+        {
+            "id": product.id,
+            "name": product.name,
+            "price": str(product.price),
+            "gst": str(product.gst_rate),
+        }
+        for product in products
+    ]
+    if request.method == "POST":
+
+        invoice_form = InvoiceForm(request.POST)
+
+        if invoice_form.is_valid():
+
+            invoice = invoice_form.save(commit=False)
+
+            item_formset = InvoiceItemFormSet(
+                request.POST,
+                instance=invoice,
+                prefix="items"
+            )
+
+            if item_formset.is_valid():
+
+                # Save invoice first
+                invoice.save()
+
+                # Save invoice products
+                # Save invoice items after automatically setting their prices
+                items_to_save = item_formset.save(commit=False)
+
+                # Delete rows marked for deletion
+                for deleted_item in item_formset.deleted_objects:
+                    deleted_item.delete()
+
+                # Set the selected product's price before saving
+                for item in items_to_save:
+                    if item.product_id and (item._state.adding or item.unit_price is None):
+                        item.unit_price = item.product.price
+
+                for item in items_to_save:
+                    item.save()
+
+                # Save any many-to-many relationships
+                item_formset.save_m2m()
+                # Calculate invoice totals
+                items = invoice.items.all()
+
+                invoice.subtotal = sum(
+                    (item.line_subtotal for item in items),
+                    Decimal("0.00")
+                )
+
+                invoice.gst_amount = sum(
+                    (item.gst_amount for item in items),
+                    Decimal("0.00")
+                )
+
+                invoice.total_amount = sum(
+                    (item.line_total for item in items),
+                    Decimal("0.00")
+                )
+
+                invoice.save()
+
+                messages.success(
+                    request,
+                    "Invoice created successfully!"
+                )
+
+                return redirect("invoice_create")
+
+            else:
+                messages.error(
+                    request,
+                    "Please correct the product details."
+                )
+
+        else:
+            messages.error(
+                request,
+                "Please select a valid customer."
+            )
+
+            item_formset = InvoiceItemFormSet(request.POST)
+
+    else:
+
+        invoice_form = InvoiceForm()
+        item_formset = InvoiceItemFormSet()
+
+    context = {
+        "invoice_form": invoice_form,
+        "item_formset": item_formset,
+        "product_data": product_data,
+
+    }
+
+    return render(
+        request,
+        "invoice_create.html",
+        context
+    )
+    
 
 # ---------------- LOGOUT ----------------
 

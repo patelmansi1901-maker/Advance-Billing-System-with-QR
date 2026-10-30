@@ -1,0 +1,574 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Create Invoice | Advanced Billing System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            background: #f3f6fb;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: auto;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            color: #174a8b;
+            margin-bottom: 25px;
+        }
+
+        h3 {
+            color: #174a8b;
+            margin-top: 30px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .form-control,
+        select,
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccd5e0;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 15px;
+            background: white;
+        }
+
+        .product-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+            margin-bottom: 12px;
+            padding: 15px;
+            background: #f8faff;
+            border: 1px solid #e1e7f0;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .add-btn {
+            background: #e6efff;
+            color: #174a8b;
+            font-weight: bold;
+        }
+
+        .remove-btn {
+            background: #ffe5e5;
+            color: #c62828;
+        }
+
+        .submit-btn {
+            background: #174a8b;
+            color: white;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 25px;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .message {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            background: #e6f7eb;
+            color: #176b35;
+        }
+
+        .error {
+            color: #c62828;
+            font-size: 13px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #174a8b;
+            text-decoration: none;
+        }
+
+        .product-row.invoice-item-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.invoice-summary {
+    max-width: 400px;
+    margin: 25px 0 20px auto;
+    padding: 20px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    border: 1px solid #dce3ed;
+}
+
+.invoice-summary h3 {
+    color: #174a8b;
+}
+
+.invoice-summary p {
+    font-size: 16px;
+    margin: 12px 0;
+}
+
+@media(max-width: 650px) {
+    .product-row.invoice-item-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+        @media(max-width: 650px) {
+            body {
+                padding: 12px;
+            }
+
+            .container {
+                padding: 18px;
+            }
+
+            .product-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <a href="javascript:history.back()" class="back-link">
+        ← Back
+    </a>
+
+    <h2>Create New Invoice</h2>
+
+    <!-- Django Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="message">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <!-- Customer Details -->
+        <h3>Customer Details</h3>
+
+        <label for="{{ invoice_form.customer.id_for_label }}">
+            Select Customer
+        </label>
+
+        {{ invoice_form.customer }}
+
+        {% if invoice_form.customer.errors %}
+            <div class="error">
+                {{ invoice_form.customer.errors }}
+            </div>
+        {% endif %}
+
+        <!-- Product Details -->
+        <h3>Product Details</h3>
+
+        {{ item_formset.management_form }}
+
+        {% if item_formset.non_form_errors %}
+            <div class="error">
+                {{ item_formset.non_form_errors }}
+            </div>
+        {% endif %}
+
+        <!-- Product Details -->
+<h3>Product Details</h3>
+
+{{ item_formset.management_form }}
+
+{% if item_formset.non_form_errors %}
+    <div class="error">
+        {{ item_formset.non_form_errors }}
+    </div>
+{% endif %}
+
+<div id="product-container">
+
+    {% for form in item_formset %}
+
+        <div class="product-row invoice-item-row">
+
+            <div>
+                <label>Product</label>
+                {{ form.product }}
+
+                {% if form.product.errors %}
+                    <div class="error">{{ form.product.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div>
+                <label>Quantity</label>
+                {{ form.quantity }}
+
+                {% if form.quantity.errors %}
+                    <div class="error">{{ form.quantity.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div>
+                <label>Unit Price (₹)</label>
+                <input type="number" class="unit-price" value="0" readonly>
+            </div>
+
+            <div>
+                <label>GST (%)</label>
+                <input type="number" class="gst-rate" value="0" readonly>
+            </div>
+
+            <div>
+                <label>Discount (%)</label>
+                <input type="number"
+                       class="discount-rate"
+                       value="0"
+                       min="0"
+                       max="100"
+                       step="0.01">
+            </div>
+
+            <div>
+                <label>Item Total (₹)</label>
+                <input type="number" class="item-total" value="0" readonly>
+            </div>
+
+            <div>
+                {{ form.DELETE }}
+                {{ form.id }}
+
+                <button type="button"
+                        class="remove-btn"
+                        onclick="removeProduct(this)">
+                    Remove
+                </button>
+            </div>
+
+        </div>
+
+    {% endfor %}
+
+</div>
+
+<!-- Empty form template -->
+<template id="empty-product-form">
+
+    <div class="product-row invoice-item-row">
+
+        <div>
+            <label>Product</label>
+            {{ item_formset.empty_form.product }}
+        </div>
+
+        <div>
+            <label>Quantity</label>
+            {{ item_formset.empty_form.quantity }}
+        </div>
+
+        <div>
+            <label>Unit Price (₹)</label>
+            <input type="number" class="unit-price" value="0" readonly>
+        </div>
+
+        <div>
+            <label>GST (%)</label>
+            <input type="number" class="gst-rate" value="0" readonly>
+        </div>
+
+        <div>
+            <label>Discount (%)</label>
+            <input type="number"
+                   class="discount-rate"
+                   value="0"
+                   min="0"
+                   max="100"
+                   step="0.01">
+        </div>
+
+        <div>
+            <label>Item Total (₹)</label>
+            <input type="number" class="item-total" value="0" readonly>
+        </div>
+
+        <div>
+            {{ item_formset.empty_form.DELETE }}
+            {{ item_formset.empty_form.id }}
+
+            <button type="button"
+                    class="remove-btn"
+                    onclick="removeProduct(this)">
+                Remove
+            </button>
+        </div>
+
+    </div>
+
+</template>
+
+        <!-- Add Product Button -->
+        <button type="button"
+                class="add-btn"
+                id="add-product">
+
+            + Add Another Product
+
+        </button>
+        <!-- Invoice Summary -->
+<div class="invoice-summary">
+
+    <h3>Invoice Summary</h3>
+
+    <p>
+        Subtotal:
+        ₹<span id="grand-subtotal">0.00</span>
+    </p>
+
+    <p>
+        Discount:
+        ₹<span id="grand-discount">0.00</span>
+    </p>
+
+    <p>
+        GST:
+        ₹<span id="grand-gst">0.00</span>
+    </p>
+
+    <h3>
+        Grand Total:
+        ₹<span id="grand-total">0.00</span>
+    </h3>
+
+</div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="submit-btn">
+
+            Create Invoice
+
+        </button>
+
+    </form>
+
+</div>
+
+
+{{ product_data|json_script:"product-data" }}
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const container = document.getElementById("product-container");
+
+    const addButton = document.getElementById("add-product");
+
+    const totalForms = document.getElementById("id_items-TOTAL_FORMS");
+
+    const emptyTemplate = document.getElementById("empty-product-form");
+
+    // Read product data from Django
+    const productData = JSON.parse(
+        document.getElementById("product-data").textContent
+    );
+
+    const productMap = {};
+
+    productData.forEach(function(product) {
+        productMap[String(product.id)] = product;
+    });
+
+    // Calculate one product row
+    function calculateItem(row) {
+
+        const productSelect = row.querySelector('select[name$="-product"]');
+        const quantityInput = row.querySelector('input[name$="-quantity"]');
+
+        const priceInput = row.querySelector(".unit-price");
+        const gstInput = row.querySelector(".gst-rate");
+        const discountInput = row.querySelector(".discount-rate");
+        const totalInput = row.querySelector(".item-total");
+
+        if (!productSelect || !quantityInput) return {
+            subtotal: 0, discount: 0, gst: 0, total: 0
+        };
+
+        const product = productMap[productSelect.value];
+
+        if (!product) {
+            priceInput.value = "0.00";
+            gstInput.value = "0.00";
+            totalInput.value = "0.00";
+
+            return {
+                subtotal: 0, discount: 0, gst: 0, total: 0
+            };
+        }
+
+        const price = Number(product.price) || 0;
+        const gstRate = Number(product.gst) || 0;
+        const quantity = Math.max(0, Number(quantityInput.value) || 0);
+
+        const discountRate = Math.min(
+            100,
+            Math.max(0, Number(discountInput.value) || 0)
+        );
+
+        discountInput.value = discountRate;
+
+        const subtotal = price * quantity;
+        const discount = subtotal * discountRate / 100;
+        const taxableAmount = subtotal - discount;
+        const gst = taxableAmount * gstRate / 100;
+        const total = taxableAmount + gst;
+
+        priceInput.value = price.toFixed(2);
+        gstInput.value = gstRate.toFixed(2);
+        totalInput.value = total.toFixed(2);
+
+        return {
+            subtotal: subtotal,
+            discount: discount,
+            gst: gst,
+            total: total
+        };
+    }
+
+    // Calculate complete invoice total
+    function calculateGrandTotal() {
+
+        let subtotal = 0;
+        let discount = 0;
+        let gst = 0;
+        let total = 0;
+
+        document.querySelectorAll(".invoice-item-row").forEach(function(row) {
+
+            const deleteInput = row.querySelector('input[name$="-DELETE"]');
+
+            if (row.style.display === "none" ||
+                (deleteInput && deleteInput.checked)) {
+                return;
+            }
+
+            const result = calculateItem(row);
+
+            subtotal += result.subtotal;
+            discount += result.discount;
+            gst += result.gst;
+            total += result.total;
+
+        });
+
+        document.getElementById("grand-subtotal").textContent = subtotal.toFixed(2);
+        document.getElementById("grand-discount").textContent = discount.toFixed(2);
+        document.getElementById("grand-gst").textContent = gst.toFixed(2);
+        document.getElementById("grand-total").textContent = total.toFixed(2);
+    }
+
+    // Add another product row
+    addButton.addEventListener("click", function() {
+
+        const formNumber = parseInt(totalForms.value);
+
+        const newForm = emptyTemplate.innerHTML.replace(
+            /__prefix__/g,
+            formNumber
+        );
+
+        container.insertAdjacentHTML("beforeend", newForm);
+
+        totalForms.value = formNumber + 1;
+
+        calculateGrandTotal();
+    });
+
+    // Remove product row
+    window.removeProduct = function(button) {
+
+        const row = button.closest(".product-row");
+
+        const deleteInput = row.querySelector('input[name$="-DELETE"]');
+
+        if (deleteInput) {
+            deleteInput.checked = true;
+            row.style.display = "none";
+        }
+
+        calculateGrandTotal();
+    };
+
+    // Update totals when values change
+    document.addEventListener("input", function(event) {
+
+        if (
+            event.target.matches('input[name$="-quantity"]') ||
+            event.target.matches(".discount-rate")
+        ) {
+            calculateGrandTotal();
+        }
+
+    });
+
+    document.addEventListener("change", function(event) {
+
+        if (
+            event.target.matches('select[name$="-product"]') ||
+            event.target.matches('input[name$="-quantity"]') ||
+            event.target.matches(".discount-rate")
+        ) {
+            calculateGrandTotal();
+        }
+
+    });
+
+    // Initial calculation
+    calculateGrandTotal();
+
+});
+
+</script>
+</body>
+</html>

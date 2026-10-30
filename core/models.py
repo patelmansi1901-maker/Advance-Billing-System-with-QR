@@ -1,5 +1,6 @@
 
 from django.conf import settings
+from decimal import Decimal
 from django.db import models
 
 
@@ -162,3 +163,138 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.product_code})"
+
+
+from django.db import models
+from django.utils import timezone
+import uuid
+
+
+class Invoice(models.Model):
+    STATUS_CHOICES = [
+        ("draft", "Draft"),
+        ("paid", "Paid"),
+        ("pending", "Pending"),
+        ("cancelled", "Cancelled"),
+    ]
+
+    invoice_number = models.CharField(
+        max_length=30,
+        unique=True,
+        blank=True
+    )
+
+    customer = models.ForeignKey(
+        "core.Customer",
+        on_delete=models.PROTECT,
+        related_name="invoices"
+    )
+
+    invoice_date = models.DateTimeField(default=timezone.now)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending"
+    )
+
+    subtotal = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    gst_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    total_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            self.invoice_number = (
+                f"INV-{uuid.uuid4().hex[:12].upper()}"
+            )
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.invoice_number
+
+
+class InvoiceItem(models.Model):
+    invoice = models.ForeignKey(
+        Invoice,
+        on_delete=models.CASCADE,
+        related_name="items"
+    )
+
+    product = models.ForeignKey(
+        "core.Product",
+        on_delete=models.PROTECT,
+        related_name="invoice_items"
+    )
+
+    quantity = models.PositiveIntegerField(default=1)
+
+    unit_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+
+    gst_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0
+    )
+
+    line_subtotal = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    gst_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    line_total = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    
+from decimal import Decimal
+
+def save(self, *args, **kwargs):
+
+    # Get price and GST from the selected product
+    if self.product_id:
+        self.unit_price = self.product.price
+        self.gst_rate = self.product.gst_rate
+
+    # Convert values into Decimal
+    self.unit_price = Decimal(str(self.unit_price))
+    self.gst_rate = Decimal(str(self.gst_rate or 0))
+
+    # Calculate invoice item amounts
+    self.line_subtotal = self.unit_price * self.quantity
+
+    self.gst_amount = (
+        self.line_subtotal * self.gst_rate / Decimal("100")
+    )
+
+    self.line_total = self.line_subtotal + self.gst_amount
+
+    super().save(*args, **kwargs)
