@@ -1,16 +1,30 @@
-
+ 
 from django.contrib import admin
-from .models import Customer
 
-from django.contrib import admin
-from .models import DistributorProfile, PasswordResetOTP
+from .models import (
+    Customer,
+    DistributorProfile,
+    PasswordResetOTP,
+    Category,
+    Product,
+    Invoice,
+    InvoiceItem,
+)
 
+
+# ==========================================
+# DISTRIBUTOR PROFILE ADMIN
+# ==========================================
 
 @admin.register(DistributorProfile)
 class DistributorProfileAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "phone")
     search_fields = ("user__username", "user__email", "phone")
 
+
+# ==========================================
+# PASSWORD RESET OTP ADMIN
+# ==========================================
 
 @admin.register(PasswordResetOTP)
 class PasswordResetOTPAdmin(admin.ModelAdmin):
@@ -23,10 +37,15 @@ class PasswordResetOTPAdmin(admin.ModelAdmin):
         "is_verified",
         "is_used",
     )
+
     search_fields = ("user__username", "user__email")
     list_filter = ("is_verified", "is_used", "created_at")
     readonly_fields = ("otp_hash",)
 
+
+# ==========================================
+# CUSTOMER ADMIN
+# ==========================================
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
@@ -49,9 +68,9 @@ class CustomerAdmin(admin.ModelAdmin):
     list_filter = ("city", "state", "created_at")
 
 
-from django.contrib import admin
-from .models import Category, Product
-
+# ==========================================
+# CATEGORY ADMIN
+# ==========================================
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -59,6 +78,10 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ("name",)
     list_filter = ("is_active",)
 
+
+# ==========================================
+# PRODUCT ADMIN
+# ==========================================
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -121,29 +144,44 @@ class ProductAdmin(admin.ModelAdmin):
     )
 
 
-from django.contrib import admin
-from .models import Invoice, InvoiceItem
-
+# ==========================================
+# INVOICE ITEM INLINE
+# ==========================================
 
 class InvoiceItemInline(admin.TabularInline):
     model = InvoiceItem
     extra = 1
 
 
+# ==========================================
+# INVOICE ADMIN
+# ==========================================
+
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
     list_display = (
         "invoice_number",
         "customer",
+        "distributor",
         "invoice_date",
-        "status",
-        "total_amount",
+        "subtotal",
+        "gst_amount",
+        "grand_total",
     )
 
-    list_filter = ("status", "invoice_date")
-    search_fields = ("invoice_number", "customer__name")
+    list_filter = ("invoice_date",)
+
+    search_fields = (
+        "invoice_number",
+        "customer__name",
+    )
+
     inlines = [InvoiceItemInline]
 
+
+# ==========================================
+# INVOICE ITEM ADMIN
+# ==========================================
 
 @admin.register(InvoiceItem)
 class InvoiceItemAdmin(admin.ModelAdmin):
@@ -151,11 +189,14 @@ class InvoiceItemAdmin(admin.ModelAdmin):
         "invoice",
         "product",
         "quantity",
-        "unit_price",
+        "price",
         "gst_rate",
-        "line_total",
+        "total",
     )
 
     list_filter = ("gst_rate",)
-    search_fields = ("invoice__invoice_number", "product__name")
 
+    search_fields = (
+        "invoice__invoice_number",
+        "product__name",
+    )

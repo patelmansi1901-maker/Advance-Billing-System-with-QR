@@ -168,35 +168,31 @@ class Product(models.Model):
 from django.db import models
 from django.utils import timezone
 import uuid
+from django.db import models
+from django.contrib.auth.models import User
+
+
 
 
 class Invoice(models.Model):
-    STATUS_CHOICES = [
-        ("draft", "Draft"),
-        ("paid", "Paid"),
-        ("pending", "Pending"),
-        ("cancelled", "Cancelled"),
-    ]
-
-    invoice_number = models.CharField(
-        max_length=30,
-        unique=True,
-        blank=True
-    )
+    invoice_number = models.CharField(max_length=30, unique=True)
 
     customer = models.ForeignKey(
-        "core.Customer",
-        on_delete=models.PROTECT,
-        related_name="invoices"
+        'core.Customer',
+        on_delete=models.CASCADE,
+        related_name='invoices'
     )
 
-    invoice_date = models.DateTimeField(default=timezone.now)
-
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default="pending"
+    # Nullable so existing invoices can be migrated safely.
+    distributor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='invoices'
     )
+
+    invoice_date = models.DateTimeField(auto_now_add=True)
 
     subtotal = models.DecimalField(
         max_digits=12,
@@ -210,21 +206,11 @@ class Invoice(models.Model):
         default=0
     )
 
-    total_amount = models.DecimalField(
+    grand_total = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=0
     )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def save(self, *args, **kwargs):
-        if not self.invoice_number:
-            self.invoice_number = (
-                f"INV-{uuid.uuid4().hex[:12].upper()}"
-            )
-        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.invoice_number
@@ -234,18 +220,17 @@ class InvoiceItem(models.Model):
     invoice = models.ForeignKey(
         Invoice,
         on_delete=models.CASCADE,
-        related_name="items"
+        related_name='items'
     )
 
     product = models.ForeignKey(
-        "core.Product",
-        on_delete=models.PROTECT,
-        related_name="invoice_items"
+        'core.Product',
+        on_delete=models.PROTECT
     )
 
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.PositiveIntegerField()
 
-    unit_price = models.DecimalField(
+    price = models.DecimalField(
         max_digits=10,
         decimal_places=2
     )
@@ -256,23 +241,33 @@ class InvoiceItem(models.Model):
         default=0
     )
 
-    line_subtotal = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0
-    )
+    total = models.DecimalField(
+    max_digits=12,
+    decimal_places=2,
+    default=0
+)
+    def save(self, *args, **kwargs):
+        if self.product_id:
+            self.price = self.product.price
+            self.gst_rate = Decimal(
+                str(self.product.gst_rate or "0")
+            )
 
-    gst_amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0
-    )
+        self.price = Decimal(str(self.price))
+        self.gst_rate = Decimal(str(self.gst_rate or "0"))
 
-    line_total = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0
-    )
+        item_subtotal = self.price * self.quantity
+
+        item_gst = (
+            item_subtotal * self.gst_rate / Decimal("100")
+        )
+
+        self.total = item_subtotal + item_gst
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.product.name} - {self.quantity}"
 
     
 from decimal import Decimal

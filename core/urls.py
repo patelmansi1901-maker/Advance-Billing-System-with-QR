@@ -2,6 +2,7 @@
 from django.urls import path
 from . import views
 from core import views
+from core.views import invoice_list
 
 urlpatterns = [
     path("admin-login/", views.admin_login, name="admin_login"),
@@ -37,6 +38,14 @@ urlpatterns = [
     path("products/<int:product_id>/delete/", views.delete_product, name="delete_product",),
 
     path("invoice/create/", views.invoice_create, name="invoice_create"),
+
+     path("invoices/add/", views.invoice_add, name="invoice_add"),
+
+    path("invoices/", views.invoice_list, name="invoice_list"),
+
+    path('invoice/<int:invoice_id>/pdf/', views.invoice_pdf, name='invoice_pdf'),
+
+    path('invoices/', invoice_list, name='invoice_list'),
 
     path("logout/", views.logout_view, name="logout"),
 

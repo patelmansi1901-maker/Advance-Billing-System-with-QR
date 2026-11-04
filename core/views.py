@@ -8,6 +8,22 @@ from django.contrib.auth import (
     logout,
 )
 import re
+import os
+import json
+import base64
+import qrcode
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.template.loader import render_to_string
+from django.db.models import Count, Prefetch
+from django.conf import settings
+from django.contrib.staticfiles import finders
+from io import BytesIO
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, render
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from .models import Invoice
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
@@ -16,6 +32,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import user_passes_test
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.db.models import Count
 from .models import Customer
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
@@ -35,11 +52,14 @@ from django.views.decorators.http import require_POST
 from .models import DistributorProfile
 from django.contrib.auth.models import Group
 from .models import Customer
+from django.db.models import Max
+from .models import Invoice, InvoiceItem, Customer, Product
+from decimal import Decimal, InvalidOperation
 from .models import PasswordResetOTP
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from .models import DistributorProfile
-from decimal import Decimal
+from decimal import Decimal,InvalidOperation
 from .forms import InvoiceForm, InvoiceItemFormSet
 
 User = get_user_model()
@@ -986,11 +1006,139 @@ def delete_product(request, product_id):
 
     return redirect("product_list")
 
+@login_required
+def invoice_add(request):
+
+    # Show invoice form
+    if request.method == "GET":
+
+        customers = Customer.objects.all()
+        products = Product.objects.all()
+
+        return render(request, "invoice_add.html", {
+            "customers": customers,
+            "products": products
+        })
+
+    # Save invoice when form is submitted
+    if request.method == "POST":
+
+        try:
+            customer_id = request.POST.get("customer")
+
+            product_ids = request.POST.getlist("product[]")
+            quantities = request.POST.getlist("quantity[]")
+
+            if not customer_id:
+                messages.error(request, "Please select a customer.")
+                return redirect("invoice_add")
+
+            if not product_ids or len(product_ids) != len(quantities):
+                messages.error(request, "Please add at least one valid product.")
+                return redirect("invoice_add")
+
+            customer = get_object_or_404(Customer, id=customer_id)
+
+            # Make sure distributor can only invoice their own customers
+            if not request.user.is_staff:
+                if customer.distributor_id != request.user.id:
+                    messages.error(request, "You cannot create an invoice for this customer.")
+                    return redirect("invoice_add")
+
+            invoice_rows = []
+            subtotal = Decimal("0.00")
+            gst_amount = Decimal("0.00")
+
+            # Validate products and calculate totals before saving
+            for product_id, quantity_value in zip(product_ids, quantities):
+
+                if not product_id:
+                    raise ValueError("Please select a product.")
+
+                quantity = int(quantity_value)
+
+                if quantity <= 0:
+                    raise ValueError("Quantity must be greater than zero.")
+
+                product = get_object_or_404(Product, id=product_id)
+
+                if product.stock < quantity:
+                    raise ValueError(
+                        f"Insufficient stock for {product.name}."
+                    )
+
+                price = Decimal(str(product.price))
+                gst_rate = Decimal(str(product.gst_rate))
+
+                item_subtotal = price * quantity
+                item_gst = item_subtotal * gst_rate / Decimal("100")
+                item_total = item_subtotal + item_gst
+
+                subtotal += item_subtotal
+                gst_amount += item_gst
+
+                invoice_rows.append({
+                    "product": product,
+                    "quantity": quantity,
+                    "price": price,
+                    "gst_rate": gst_rate,
+                    "total": item_total
+                })
+
+            grand_total = subtotal + gst_amount
+
+            # Save invoice and items together
+            with transaction.atomic():
+
+                invoice_number = (
+                    "INV-" + timezone.now().strftime("%Y%m%d%H%M%S%f")
+                )
+
+                invoice = Invoice.objects.create(
+                    invoice_number=invoice_number,
+                    customer=customer,
+                    distributor=request.user,
+                    subtotal=subtotal,
+                    gst_amount=gst_amount,
+                    grand_total=grand_total
+                )
+
+                for row in invoice_rows:
+
+                    InvoiceItem.objects.create(
+                        invoice=invoice,
+                        product=row["product"],
+                        quantity=row["quantity"],
+                        price=row["price"],
+                        gst_rate=row["gst_rate"],
+                        total=row["total"]
+                    )
+
+                    # Reduce product stock
+                    product = row["product"]
+                    product.stock -= row["quantity"]
+                    product.save(update_fields=["stock"])
+
+            messages.success(
+                request,
+                f"Invoice {invoice.invoice_number} created successfully!"
+            )
+
+            return redirect("invoice_list")
+
+        except (ValueError, InvalidOperation, TypeError):
+            messages.error(
+                request,
+                "Invalid invoice details. Please check the entered values."
+            )
+            return redirect("invoice_add")
+
+
 
 @login_required
 def invoice_create(request):
 
-    # Fetch all products from the database for JavaScript
+    # Fetch products for JavaScript calculations
     products = Product.objects.all()
 
     product_data = [
@@ -1002,94 +1150,146 @@ def invoice_create(request):
         }
         for product in products
     ]
+
     if request.method == "POST":
 
         invoice_form = InvoiceForm(request.POST)
+        item_formset = InvoiceItemFormSet(
+            request.POST,
+            prefix="items"
+        )
 
-        if invoice_form.is_valid():
+        if invoice_form.is_valid() and item_formset.is_valid():
 
-            invoice = invoice_form.save(commit=False)
+            try:
+                with transaction.atomic():
 
-            item_formset = InvoiceItemFormSet(
-                request.POST,
-                instance=invoice,
-                prefix="items"
-            )
+                    # Create invoice without saving immediately
+                    invoice = invoice_form.save(commit=False)
 
-            if item_formset.is_valid():
+                    # Assign logged-in distributor
+                    invoice.distributor = request.user
 
-                # Save invoice first
-                invoice.save()
+                    # Generate a unique invoice number
+                    last_invoice = (
+                        Invoice.objects
+                        .order_by("-id")
+                        .first()
+                    )
 
-                # Save invoice products
-                # Save invoice items after automatically setting their prices
-                items_to_save = item_formset.save(commit=False)
+                    if last_invoice and last_invoice.invoice_number:
+                        try:
+                            last_number = int(
+                                last_invoice.invoice_number.replace(
+                                    "INV-", ""
+                                )
+                            )
+                            next_number = last_number + 1
 
-                # Delete rows marked for deletion
-                for deleted_item in item_formset.deleted_objects:
-                    deleted_item.delete()
+                        except (ValueError, AttributeError):
+                            next_number = Invoice.objects.count() + 1
+                    else:
+                        next_number = 1
 
-                # Set the selected product's price before saving
-                for item in items_to_save:
-                    if item.product_id and (item._state.adding or item.unit_price is None):
-                        item.unit_price = item.product.price
+                    invoice.invoice_number = f"INV-{next_number:05d}"
 
-                for item in items_to_save:
-                    item.save()
+                    # Save invoice
+                    invoice.save()
 
-                # Save any many-to-many relationships
-                item_formset.save_m2m()
-                # Calculate invoice totals
-                items = invoice.items.all()
+                    # Connect formset to the saved invoice
+                    item_formset.instance = invoice
 
-                invoice.subtotal = sum(
-                    (item.line_subtotal for item in items),
-                    Decimal("0.00")
-                )
+                    # Get invoice items
+                    items_to_save = item_formset.save(commit=False)
 
-                invoice.gst_amount = sum(
-                    (item.gst_amount for item in items),
-                    Decimal("0.00")
-                )
+                    # Delete removed items
+                    for deleted_item in item_formset.deleted_objects:
+                        deleted_item.delete()
 
-                invoice.total_amount = sum(
-                    (item.line_total for item in items),
-                    Decimal("0.00")
-                )
+                    subtotal = Decimal("0.00")
+                    gst_amount = Decimal("0.00")
+                    grand_total = Decimal("0.00")
 
-                invoice.save()
+                    # Save each invoice item
+                    for item in items_to_save:
+
+                        if not item.product_id:
+                            continue
+
+                        # Get price and GST from selected product
+                        price = Decimal(str(item.product.price))
+                        gst_rate = Decimal(str(item.product.gst_rate))
+                        quantity = int(item.quantity)
+
+                        if quantity <= 0:
+                            raise ValueError(
+                                "Quantity must be greater than zero."
+                            )
+
+                        # Calculate item amounts
+                        item_subtotal = price * quantity
+
+                        item_gst = (
+                            item_subtotal * gst_rate
+                            / Decimal("100")
+                        )
+
+                        item_total = item_subtotal + item_gst
+
+                        # Assign correct model fields
+                        item.price = price
+                        item.gst_rate = gst_rate
+                        item.total = item_total
+
+                        item.save()
+
+                        # Add to invoice totals
+                        subtotal += item_subtotal
+                        gst_amount += item_gst
+                        grand_total += item_total
+
+                    # Save final invoice amounts
+                    invoice.subtotal = subtotal
+                    invoice.gst_amount = gst_amount
+                    invoice.grand_total = grand_total
+
+                    invoice.save(
+                        update_fields=[
+                            "subtotal",
+                            "gst_amount",
+                            "grand_total",
+                        ]
+                    )
 
                 messages.success(
                     request,
-                    "Invoice created successfully!"
+                    f"Invoice {invoice.invoice_number} created successfully!"
                 )
 
-                return redirect("invoice_create")
+                return redirect("invoice_list")
 
-            else:
+            except (ValueError, InvalidOperation, TypeError) as error:
+
                 messages.error(
                     request,
-                    "Please correct the product details."
+                    f"Invoice could not be created: {error}"
                 )
 
         else:
             messages.error(
                 request,
-                "Please select a valid customer."
+                "Please correct the customer and product details."
             )
-
-            item_formset = InvoiceItemFormSet(request.POST)
 
     else:
 
         invoice_form = InvoiceForm()
-        item_formset = InvoiceItemFormSet()
+        item_formset = InvoiceItemFormSet(prefix="items")
 
     context = {
         "invoice_form": invoice_form,
         "item_formset": item_formset,
         "product_data": product_data,
-
     }
 
     return render(
@@ -1097,7 +1297,185 @@ def invoice_create(request):
         "invoice_create.html",
         context
     )
-    
+
+
+@login_required
+def invoice_list(request):
+
+    if request.user.is_staff:
+        invoices = Invoice.objects.select_related(
+            "customer", "distributor"
+        ).order_by("-id")
+    else:
+        invoices = Invoice.objects.filter(
+            distributor=request.user
+        ).select_related(
+            "customer", "distributor"
+        ).order_by("-id")
+
+    return render(request, "invoice_list.html", {
+        "invoices": invoices
+    })
+
+
+@login_required
+
+def invoice_pdf(request, invoice_id):
+    invoice = get_object_or_404(
+        Invoice.objects.prefetch_related('items__product'),
+        id=invoice_id
+    )
+
+    items = invoice.items.select_related('product').all()
+
+    context = {
+        'invoice': invoice,
+        'items': items,
+    }
+
+    html = render_to_string('invoice_pdf.html', context)
+
+    pdf_file = BytesIO()
+    pisa_status = pisa.CreatePDF(html, dest=pdf_file)
+
+    if pisa_status.err:
+        return HttpResponse(
+            'Error generating PDF',
+            status=500
+        )
+
+    response = HttpResponse(
+        pdf_file.getvalue(),
+        content_type='application/pdf'
+    )
+
+    response['Content-Disposition'] = (
+        f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
+    )
+
+    return response
+
+# 9. Resolve local static and media image paths for xhtml2pdf
+def link_callback(uri, rel):
+
+    if uri.startswith(settings.MEDIA_URL):
+        path = os.path.join(
+            str(settings.MEDIA_ROOT),
+            uri[len(settings.MEDIA_URL):]
+        )
+
+    elif uri.startswith(settings.STATIC_URL):
+        path = finders.find(
+            uri[len(settings.STATIC_URL):]
+        )
+
+    else:
+        return uri
+
+    if not path or not os.path.isfile(path):
+        raise Exception(
+            f'PDF image file not found: {uri}'
+        )
+
+    return path
+
+
+@login_required
+def invoice_list(request):
+
+    # 1. Fetch invoice data and related customer/product information
+    invoices = Invoice.objects.select_related(
+        'customer',
+        'distributor'
+    ).prefetch_related(
+        'items__product'
+    ).annotate(
+        product_count=Count('items', distinct=True)
+    ).order_by('-invoice_date', '-id')
+
+    # 2. Distributor can see their own invoices.
+    # Admin can see all invoices.
+    if not request.user.is_staff:
+        invoices = invoices.filter(distributor=request.user)
+
+    # 3. Pagination: 10 invoices per page
+    paginator = Paginator(invoices, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # 4. Generate QR code using actual invoice and item data
+    for invoice in page_obj:
+
+        product_summary = []
+
+        for item in invoice.items.all():
+            product_summary.append({
+                'product_name': item.product.name,
+                'quantity': item.quantity,
+                'price': str(item.price),
+                'gst_rate': str(item.gst_rate),
+                'total': str(item.total),
+            })
+
+        invoice_data = {
+            'invoice_number': invoice.invoice_number,
+            'customer_name': invoice.customer.name,
+            'invoice_date': (
+                invoice.invoice_date.isoformat()
+                if invoice.invoice_date else ''
+            ),
+            'product_count': invoice.product_count,
+            'products': product_summary,
+            'subtotal': str(invoice.subtotal),
+            'gst_amount': str(invoice.gst_amount),
+            'grand_total': str(invoice.grand_total),
+        }
+
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=8,
+            border=4
+        )
+
+        qr.add_data(json.dumps(invoice_data))
+        qr.make(fit=True)
+
+        qr_image = qr.make_image(
+            fill_color='black',
+            back_color='white'
+        )
+
+        buffer = BytesIO()
+        qr_image.save(buffer, format='PNG')
+
+        invoice.qr_code = base64.b64encode(
+            buffer.getvalue()
+        ).decode('utf-8')
+
+    # 5. Send dynamic data to HTML template
+    context = {
+        'invoices': page_obj,
+        'page_obj': page_obj,
+    }
+
+    return render(
+        request,
+        'invoice_list.html',
+        context
+    )
+
+# Check whether logged-in user is an admin
+def is_admin_user(user):
+    return user.is_authenticated and user.is_staff
+
+
+# Admin Registration Frontend Page
+@login_required(login_url='admin_login')
+@user_passes_test(is_admin_user, login_url='admin_login')
+def admin_register_page(request):
+
+    return render(request, 'admin_register.html')
 
 # ---------------- LOGOUT ----------------
 

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice List | Advanced Billing System</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f6fb;
+            padding: 30px;
+            color: #243247;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            color: #173b72;
+            font-size: 28px;
+        }
+
+        .header p {
+            color: #6b7280;
+            margin-top: 7px;
+        }
+
+        .table-card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1050px;
+        }
+
+        th, td {
+            padding: 15px 12px;
+            text-align: center;
+            border-bottom: 1px solid #e8edf4;
+            font-size: 14px;
+        }
+
+        th {
+            background: #173b72;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f5f8ff;
+        }
+
+        .invoice-number {
+            font-weight: bold;
+            color: #173b72;
+        }
+
+        .amount {
+            font-weight: bold;
+            color: #16834b;
+        }
+
+        .qr-image {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            border: 1px solid #e5e7eb;
+            padding: 5px;
+            border-radius: 6px;
+        }
+
+        .qr-button {
+            display: inline-block;
+            margin-top: 7px;
+            padding: 7px 12px;
+            background: #173b72;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .pagination a {
+            text-decoration: none;
+            padding: 9px 16px;
+            background: #173b72;
+            color: white;
+            border-radius: 5px;
+        }
+
+        .pagination a:hover {
+            background: #2457a0;
+        }
+
+        .pagination span {
+            font-weight: bold;
+            color: #374151;
+        }
+
+        .empty {
+            padding: 35px;
+            text-align: center;
+            color: #777;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <div>
+            <h1>Invoice Management</h1>
+            <p>View all invoices and their generated QR codes.</p>
+        </div>
+    </div>
+
+
+<div class="table-card">
+
+    <table>
+        <thead>
+            <tr>
+                <th>Sr. No.</th>
+                <th>Invoice Number</th>
+                <th>Customer Name</th>
+                <th>Invoice Date</th>
+                <th>Product Summary</th>
+                <th>Product Count</th>
+                <th>Subtotal</th>
+                <th>GST</th>
+                <th>Total Bill</th>
+                <th>QR Code</th>
+                <th>PDF</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for invoice in invoices %}
+
+            <tr>
+
+                <td>
+                    {{ forloop.counter0|add:page_obj.start_index }}
+                </td>
+
+                <td>
+                    <strong>{{ invoice.invoice_number }}</strong>
+                </td>
+
+                <td>
+                    {{ invoice.customer.name }}
+                </td>
+
+                <td>
+                    {{ invoice.invoice_date|date:"d-m-Y" }}
+                </td>
+
+                <!-- Dynamic Product Summary -->
+                <td style="text-align:left; min-width:200px;">
+
+                    {% for item in invoice.items.all %}
+
+                        <div style="margin-bottom:8px;">
+                            <strong>{{ item.product.name }}</strong>
+                            <br>
+
+                            <small>
+                                Quantity: {{ item.quantity }}
+                            </small>
+                            <br>
+
+                            <small>
+                                Price: ₹{{ item.price }}
+                            </small>
+                            <br>
+
+                            <small>
+                                Item Total: ₹{{ item.total }}
+                            </small>
+                        </div>
+
+                    {% empty %}
+
+                        No products
+
+                    {% endfor %}
+
+                </td>
+
+                <td>
+                    {{ invoice.product_count }}
+                </td>
+
+                <td>
+                    ₹{{ invoice.subtotal }}
+                </td>
+
+                <td>
+                    ₹{{ invoice.gst_amount }}
+                </td>
+
+                <td>
+                    <strong style="color:green;">
+                        ₹{{ invoice.grand_total }}
+                    </strong>
+                </td>
+
+                <!-- Dynamic QR Code -->
+                <td>
+
+                    {% if invoice.qr_code %}
+
+                        <img
+                            src="data:image/png;base64,{{ invoice.qr_code }}"
+                            alt="Invoice QR"
+                            width="90"
+                            height="90"
+                        >
+
+                        <br>
+
+                        <a
+                            href="data:image/png;base64,{{ invoice.qr_code }}"
+                            download="invoice_{{ invoice.invoice_number }}_QR.png"
+                            class="qr-button"
+                        >
+                            Download QR
+                        </a>
+
+                        <td>
+                            <a href="{% url 'invoice_pdf' invoice.id %}"
+                            class="qr-button">
+                                Download PDF
+                            </a>
+                        </td>
+                    {% else %}
+
+                        QR Not Available
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+
+            {% empty %}
+
+            <tr>
+                <td colspan="10" class="empty">
+                    No invoice records found.
+                </td>
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+
+    <div class="pagination">
+
+        {% if page_obj.has_previous %}
+
+            <a href="?page=1">First</a>
+
+            <a href="?page={{ page_obj.previous_page_number }}">
+                Previous
+            </a>
+
+        {% endif %}
+
+        <span>
+            Page {{ page_obj.number }}
+            of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+
+            <a href="?page={{ page_obj.next_page_number }}">
+                Next
+            </a>
+
+            <a href="?page={{ page_obj.paginator.num_pages }}">
+                Last
+            </a>
+
+        {% endif %}
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+
+</div>
+
+</body>
+</html>

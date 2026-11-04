@@ -1,11 +1,9 @@
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Create Invoice | Advanced Billing System</title>
 
     <style>
@@ -29,13 +27,15 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         }
 
-        h2 {
+        h2, h3 {
             color: #174a8b;
+        }
+
+        h2 {
             margin-bottom: 25px;
         }
 
         h3 {
-            color: #174a8b;
             margin-top: 30px;
         }
 
@@ -59,7 +59,7 @@
 
         .product-row {
             display: grid;
-            grid-template-columns: 2fr 1fr auto;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 15px;
             align-items: end;
             margin-bottom: 12px;
@@ -98,7 +98,8 @@
             margin-top: 25px;
         }
 
-        button:hover {
+        button:hover,
+        .pdf-btn:hover {
             opacity: 0.85;
         }
 
@@ -122,33 +123,34 @@
             text-decoration: none;
         }
 
-        .product-row.invoice-item-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-}
+        .invoice-summary {
+            max-width: 400px;
+            margin: 25px 0 20px auto;
+            padding: 20px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            border: 1px solid #dce3ed;
+        }
 
-.invoice-summary {
-    max-width: 400px;
-    margin: 25px 0 20px auto;
-    padding: 20px;
-    background: #f1f5f9;
-    border-radius: 10px;
-    border: 1px solid #dce3ed;
-}
+        .invoice-summary h3 {
+            color: #174a8b;
+        }
 
-.invoice-summary h3 {
-    color: #174a8b;
-}
+        .invoice-summary p {
+            font-size: 16px;
+            margin: 12px 0;
+        }
 
-.invoice-summary p {
-    font-size: 16px;
-    margin: 12px 0;
-}
-
-@media(max-width: 650px) {
-    .product-row.invoice-item-row {
-        grid-template-columns: 1fr;
-    }
-}
+        .pdf-btn {
+            display: inline-block;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            background: #198754;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
 
         @media(max-width: 650px) {
             body {
@@ -164,7 +166,6 @@
             }
         }
     </style>
-
 </head>
 
 <body>
@@ -177,6 +178,15 @@
 
     <h2>Create New Invoice</h2>
 
+    <!-- PDF Download Button for an existing saved invoice -->
+    {% if invoice and invoice.pk %}
+        <a href="{% url 'invoice_pdf' invoice.id %}"
+           class="pdf-btn"
+           target="_blank">
+            Download Invoice PDF
+        </a>
+    {% endif %}
+
     <!-- Django Messages -->
     {% if messages %}
         {% for message in messages %}
@@ -187,7 +197,6 @@
     {% endif %}
 
     <form method="POST">
-
         {% csrf_token %}
 
         <!-- Customer Details -->
@@ -216,184 +225,191 @@
             </div>
         {% endif %}
 
-        <!-- Product Details -->
-<h3>Product Details</h3>
+        <div id="product-container">
 
-{{ item_formset.management_form }}
+            {% for form in item_formset %}
 
-{% if item_formset.non_form_errors %}
-    <div class="error">
-        {{ item_formset.non_form_errors }}
-    </div>
-{% endif %}
+                <div class="product-row invoice-item-row">
 
-<div id="product-container">
+                    <div>
+                        <label>Product</label>
+                        {{ form.product }}
 
-    {% for form in item_formset %}
+                        {% if form.product.errors %}
+                            <div class="error">
+                                {{ form.product.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
 
-        <div class="product-row invoice-item-row">
+                    <div>
+                        <label>Quantity</label>
+                        {{ form.quantity }}
 
-            <div>
-                <label>Product</label>
-                {{ form.product }}
+                        {% if form.quantity.errors %}
+                            <div class="error">
+                                {{ form.quantity.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
 
-                {% if form.product.errors %}
-                    <div class="error">{{ form.product.errors }}</div>
-                {% endif %}
+                    <div>
+                        <label>Unit Price (₹)</label>
+                        <input type="number"
+                               class="unit-price"
+                               value="0"
+                               readonly>
+                    </div>
+
+                    <div>
+                        <label>GST (%)</label>
+                        <input type="number"
+                               class="gst-rate"
+                               value="0"
+                               readonly>
+                    </div>
+
+                    <div>
+                        <label>Discount (%)</label>
+                        <input type="number"
+                               class="discount-rate"
+                               value="0"
+                               min="0"
+                               max="100"
+                               step="0.01">
+                    </div>
+
+                    <div>
+                        <label>Item Total (₹)</label>
+                        <input type="number"
+                               class="item-total"
+                               value="0"
+                               readonly>
+                    </div>
+
+                    <div>
+                        {{ form.DELETE }}
+                        {{ form.id }}
+
+                        <button type="button"
+                                class="remove-btn"
+                                onclick="removeProduct(this)">
+                            Remove
+                        </button>
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+        <!-- Empty form template -->
+        <template id="empty-product-form">
+
+            <div class="product-row invoice-item-row">
+
+                <div>
+                    <label>Product</label>
+                    {{ item_formset.empty_form.product }}
+                </div>
+
+                <div>
+                    <label>Quantity</label>
+                    {{ item_formset.empty_form.quantity }}
+                </div>
+
+                <div>
+                    <label>Unit Price (₹)</label>
+                    <input type="number"
+                           class="unit-price"
+                           value="0"
+                           readonly>
+                </div>
+
+                <div>
+                    <label>GST (%)</label>
+                    <input type="number"
+                           class="gst-rate"
+                           value="0"
+                           readonly>
+                </div>
+
+                <div>
+                    <label>Discount (%)</label>
+                    <input type="number"
+                           class="discount-rate"
+                           value="0"
+                           min="0"
+                           max="100"
+                           step="0.01">
+                </div>
+
+                <div>
+                    <label>Item Total (₹)</label>
+                    <input type="number"
+                           class="item-total"
+                           value="0"
+                           readonly>
+                </div>
+
+                <div>
+                    {{ item_formset.empty_form.DELETE }}
+                    {{ item_formset.empty_form.id }}
+
+                    <button type="button"
+                            class="remove-btn"
+                            onclick="removeProduct(this)">
+                        Remove
+                    </button>
+                </div>
+
             </div>
 
-            <div>
-                <label>Quantity</label>
-                {{ form.quantity }}
-
-                {% if form.quantity.errors %}
-                    <div class="error">{{ form.quantity.errors }}</div>
-                {% endif %}
-            </div>
-
-            <div>
-                <label>Unit Price (₹)</label>
-                <input type="number" class="unit-price" value="0" readonly>
-            </div>
-
-            <div>
-                <label>GST (%)</label>
-                <input type="number" class="gst-rate" value="0" readonly>
-            </div>
-
-            <div>
-                <label>Discount (%)</label>
-                <input type="number"
-                       class="discount-rate"
-                       value="0"
-                       min="0"
-                       max="100"
-                       step="0.01">
-            </div>
-
-            <div>
-                <label>Item Total (₹)</label>
-                <input type="number" class="item-total" value="0" readonly>
-            </div>
-
-            <div>
-                {{ form.DELETE }}
-                {{ form.id }}
-
-                <button type="button"
-                        class="remove-btn"
-                        onclick="removeProduct(this)">
-                    Remove
-                </button>
-            </div>
-
-        </div>
-
-    {% endfor %}
-
-</div>
-
-<!-- Empty form template -->
-<template id="empty-product-form">
-
-    <div class="product-row invoice-item-row">
-
-        <div>
-            <label>Product</label>
-            {{ item_formset.empty_form.product }}
-        </div>
-
-        <div>
-            <label>Quantity</label>
-            {{ item_formset.empty_form.quantity }}
-        </div>
-
-        <div>
-            <label>Unit Price (₹)</label>
-            <input type="number" class="unit-price" value="0" readonly>
-        </div>
-
-        <div>
-            <label>GST (%)</label>
-            <input type="number" class="gst-rate" value="0" readonly>
-        </div>
-
-        <div>
-            <label>Discount (%)</label>
-            <input type="number"
-                   class="discount-rate"
-                   value="0"
-                   min="0"
-                   max="100"
-                   step="0.01">
-        </div>
-
-        <div>
-            <label>Item Total (₹)</label>
-            <input type="number" class="item-total" value="0" readonly>
-        </div>
-
-        <div>
-            {{ item_formset.empty_form.DELETE }}
-            {{ item_formset.empty_form.id }}
-
-            <button type="button"
-                    class="remove-btn"
-                    onclick="removeProduct(this)">
-                Remove
-            </button>
-        </div>
-
-    </div>
-
-</template>
+        </template>
 
         <!-- Add Product Button -->
         <button type="button"
                 class="add-btn"
                 id="add-product">
-
             + Add Another Product
-
         </button>
+
         <!-- Invoice Summary -->
-<div class="invoice-summary">
+        <div class="invoice-summary">
 
-    <h3>Invoice Summary</h3>
+            <h3>Invoice Summary</h3>
 
-    <p>
-        Subtotal:
-        ₹<span id="grand-subtotal">0.00</span>
-    </p>
+            <p>
+                Subtotal:
+                ₹<span id="grand-subtotal">0.00</span>
+            </p>
 
-    <p>
-        Discount:
-        ₹<span id="grand-discount">0.00</span>
-    </p>
+            <p>
+                Discount:
+                ₹<span id="grand-discount">0.00</span>
+            </p>
 
-    <p>
-        GST:
-        ₹<span id="grand-gst">0.00</span>
-    </p>
+            <p>
+                GST:
+                ₹<span id="grand-gst">0.00</span>
+            </p>
 
-    <h3>
-        Grand Total:
-        ₹<span id="grand-total">0.00</span>
-    </h3>
+            <h3>
+                Grand Total:
+                ₹<span id="grand-total">0.00</span>
+            </h3>
 
-</div>
+        </div>
 
         <!-- Submit Button -->
         <button type="submit" class="submit-btn">
-
             Create Invoice
-
         </button>
 
     </form>
 
 </div>
-
 
 {{ product_data|json_script:"product-data" }}
 
@@ -402,11 +418,8 @@
 document.addEventListener("DOMContentLoaded", function () {
 
     const container = document.getElementById("product-container");
-
     const addButton = document.getElementById("add-product");
-
     const totalForms = document.getElementById("id_items-TOTAL_FORMS");
-
     const emptyTemplate = document.getElementById("empty-product-form");
 
     // Read product data from Django
@@ -431,9 +444,14 @@ document.addEventListener("DOMContentLoaded", function () {
         const discountInput = row.querySelector(".discount-rate");
         const totalInput = row.querySelector(".item-total");
 
-        if (!productSelect || !quantityInput) return {
-            subtotal: 0, discount: 0, gst: 0, total: 0
-        };
+        if (!productSelect || !quantityInput) {
+            return {
+                subtotal: 0,
+                discount: 0,
+                gst: 0,
+                total: 0
+            };
+        }
 
         const product = productMap[productSelect.value];
 
@@ -443,13 +461,19 @@ document.addEventListener("DOMContentLoaded", function () {
             totalInput.value = "0.00";
 
             return {
-                subtotal: 0, discount: 0, gst: 0, total: 0
+                subtotal: 0,
+                discount: 0,
+                gst: 0,
+                total: 0
             };
         }
 
         const price = Number(product.price) || 0;
         const gstRate = Number(product.gst) || 0;
-        const quantity = Math.max(0, Number(quantityInput.value) || 0);
+        const quantity = Math.max(
+            0,
+            Number(quantityInput.value) || 0
+        );
 
         const discountRate = Math.min(
             100,
@@ -488,8 +512,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const deleteInput = row.querySelector('input[name$="-DELETE"]');
 
-            if (row.style.display === "none" ||
-                (deleteInput && deleteInput.checked)) {
+            if (
+                row.style.display === "none" ||
+                (deleteInput && deleteInput.checked)
+            ) {
                 return;
             }
 
@@ -502,10 +528,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
         });
 
-        document.getElementById("grand-subtotal").textContent = subtotal.toFixed(2);
-        document.getElementById("grand-discount").textContent = discount.toFixed(2);
-        document.getElementById("grand-gst").textContent = gst.toFixed(2);
-        document.getElementById("grand-total").textContent = total.toFixed(2);
+        document.getElementById("grand-subtotal").textContent =
+            subtotal.toFixed(2);
+
+        document.getElementById("grand-discount").textContent =
+            discount.toFixed(2);
+
+        document.getElementById("grand-gst").textContent =
+            gst.toFixed(2);
+
+        document.getElementById("grand-total").textContent =
+            total.toFixed(2);
     }
 
     // Add another product row
@@ -570,5 +603,6 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 </script>
+
 </body>
 </html>

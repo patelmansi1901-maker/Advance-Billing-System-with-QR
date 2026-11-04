@@ -1,0 +1,222 @@
+ 
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Invoice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6fb;
+            padding: 30px;
+        }
+
+        .invoice-container {
+            max-width: 850px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            color: #234b85;
+        }
+
+        label {
+            display: block;
+            margin: 15px 0 7px;
+            font-weight: bold;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .product-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto;
+            gap: 12px;
+            margin: 12px 0;
+            align-items: center;
+        }
+
+        button {
+            padding: 11px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+        }
+
+        .add-btn { background: #198754; }
+        .remove-btn { background: #dc3545; }
+        .save-btn { background: #2457a6; margin-top: 20px; }
+        
+        .messages {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .success { background: #d1e7dd; color: #0f5132; }
+        .error { background: #f8d7da; color: #842029; }
+
+        .total {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        @media(max-width: 600px) {
+            .product-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="invoice-container">
+
+    <h2>Create New Invoice</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="messages {{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <label>Select Customer</label>
+
+        <select name="customer" required>
+            <option value="">-- Select Customer --</option>
+
+            {% for customer in customers %}
+                <option value="{{ customer.id }}">
+                    {{ customer.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <h3>Products</h3>
+
+        <div id="product-container">
+
+            <div class="product-row">
+
+                <select name="product[]" required onchange="calculateTotal()">
+                    <option value="">-- Select Product --</option>
+
+                    {% for product in products %}
+                        <option
+                            value="{{ product.id }}"
+                            data-price="{{ product.price }}"
+                            data-gst="{{ product.gst_rate }}">
+                            {{ product.name }} - ₹{{ product.price }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <input
+                    type="number"
+                    name="quantity[]"
+                    min="1"
+                    value="1"
+                    required
+                    oninput="calculateTotal()">
+
+                <button type="button" class="remove-btn"
+                    onclick="removeRow(this)">
+                    Remove
+                </button>
+
+            </div>
+
+        </div>
+
+        <button type="button" class="add-btn" onclick="addRow()">
+            + Add Product
+        </button>
+
+        <div class="total">
+            Estimated Total: ₹<span id="grand-total">0.00</span>
+        </div>
+
+        <button type="submit" class="save-btn">
+            Save Invoice
+        </button>
+
+    </form>
+
+</div>
+
+<script>
+
+function addRow() {
+
+    const container = document.getElementById("product-container");
+
+    const firstRow = container.querySelector(".product-row");
+    const newRow = firstRow.cloneNode(true);
+
+    newRow.querySelector("select").selectedIndex = 0;
+    newRow.querySelector("input").value = 1;
+
+    container.appendChild(newRow);
+
+    calculateTotal();
+}
+
+function removeRow(button) {
+
+    const container = document.getElementById("product-container");
+
+    if (container.querySelectorAll(".product-row").length > 1) {
+        button.closest(".product-row").remove();
+    }
+
+    calculateTotal();
+}
+
+function calculateTotal() {
+
+    let total = 0;
+
+    document.querySelectorAll(".product-row").forEach(row => {
+
+        const select = row.querySelector("select");
+        const quantity = parseInt(row.querySelector("input").value) || 0;
+
+        const option = select.options[select.selectedIndex];
+
+        if (option && option.dataset.price) {
+
+            const price = parseFloat(option.dataset.price) || 0;
+            const gst = parseFloat(option.dataset.gst) || 0;
+
+            const amount = price * quantity;
+            const gstAmount = amount * gst / 100;
+
+            total += amount + gstAmount;
+        }
+    });
+
+    document.getElementById("grand-total").textContent =
+        total.toFixed(2);
+}
+
+</script>
+
+</body>
+</html>
