@@ -116,6 +116,9 @@ USE_TZ = True
 TIME_ZONE = 'Asia/Kolkata'
 USE_TZ = True
 
+# Email Configuration - Local Testing
+
+# Email Configuration - Django 6.1
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
@@ -135,8 +138,32 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
+import os
+
+# Gmail SMTP Configuration
+
 MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+    "default": {
+        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+
+        "OPTIONS": {
+            "host": "smtp.gmail.com",
+            "port": 587,
+            "use_tls": True,
+
+            "username": os.environ.get(
+                "BILLING_EMAIL_HOST_USER", ""
+            ),
+
+            "password": os.environ.get(
+                "BILLING_EMAIL_HOST_PASSWORD", ""
+            ),
+
+            "timeout": 20,
+        },
     },
 }
+
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "BILLING_EMAIL_HOST_USER", ""
+)

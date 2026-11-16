@@ -12,6 +12,11 @@ import os
 import json
 import base64
 import qrcode
+from rest_framework import generics
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.permissions import IsAuthenticated
+from .serializers import CustomerRegistrationSerializer
+from .api_permissions import IsDistributor
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.template.loader import render_to_string
@@ -27,10 +32,12 @@ from .models import Invoice
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.shortcuts import render
 from django.contrib.auth.decorators import user_passes_test
 from django.core.paginator import Paginator
+from django.db.models.deletion import ProtectedError
 from django.db.models import Q
 from django.db.models import Count
 from .models import Customer
@@ -40,10 +47,13 @@ from django.db import transaction
 from django.http import request
 from django.shortcuts import render
 from .models import Product
+from .forms import ProductForm, ProductUpdateForm
 from django.shortcuts import render, redirect, get_object_or_404
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
 from django.contrib.auth.hashers import make_password, check_password
+from django.core.mail import send_mail
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.shortcuts import render, redirect
@@ -883,11 +893,24 @@ from django.shortcuts import render, redirect
 from .forms import ProductForm
 
 
+def can_manage_products(user):
+    return (
+        user.is_authenticated
+        and user.is_active
+        and (
+            user.is_staff
+            or user.groups.filter(name="Distributor").exists()
+        )
+    )
+
+
+
 @user_passes_test(
-    lambda user: user.is_authenticated and user.is_staff,
-    login_url="/admin-login/"
+    can_manage_products,
+    login_url="/distributor-login/"
 )
 def add_product(request):
+
     if request.method == "POST":
         form = ProductForm(request.POST)
 
@@ -899,12 +922,13 @@ def add_product(request):
                 f"Product '{product.name}' added successfully!"
             )
 
-            return redirect("add_product")
-        else:
-            messages.error(
-                request,
-                "Please correct the errors shown below."
-            )
+            return redirect("product_list")
+
+        messages.error(
+            request,
+            "Please correct the errors shown below."
+        )
+
     else:
         form = ProductForm()
 
@@ -915,16 +939,19 @@ def add_product(request):
     )
 
 
+
 @user_passes_test(
-    lambda user: user.is_authenticated and user.is_staff,
-    login_url="/admin-login/"
+    can_manage_products,
+    login_url="/distributor-login/"
 )
 def product_list(request):
+
     search_query = request.GET.get("q", "").strip()
 
-    products = Product.objects.select_related("category").all()
+    products = Product.objects.select_related(
+        "category"
+    ).all()
 
-    # Search product name, code, barcode, and category.
     if search_query:
         products = products.filter(
             Q(name__icontains=search_query)
@@ -933,15 +960,15 @@ def product_list(request):
             | Q(category__name__icontains=search_query)
         )
 
-    # Show 10 products per page.
-    paginator = Paginator(products, 10)
+    paginator = Paginator(products.order_by("-id"), 10)
 
-    # get_page handles invalid page numbers safely.
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginator.get_page(
+        request.GET.get("page")
+    )
 
     context = {
         "page_obj": page_obj,
+        "products": page_obj.object_list,
         "search_query": search_query,
         "total_products": paginator.count,
     }
@@ -960,16 +987,27 @@ from .models import Product
 from .forms import ProductUpdateForm
 
 
+
+@user_passes_test(
+    can_manage_products,
+    login_url="/distributor-login/"
+)
 def update_product(request, product_id):
-    product = get_object_or_404(Product, pk=product_id)
+
+    product = get_object_or_404(
+        Product,
+        pk=product_id
+    )
 
     if request.method == "POST":
+
         form = ProductUpdateForm(
             request.POST,
             instance=product
         )
 
         if form.is_valid():
+
             form.save()
 
             messages.success(
@@ -979,8 +1017,15 @@ def update_product(request, product_id):
 
             return redirect("product_list")
 
+        messages.error(
+            request,
+            "Please correct the errors in the form."
+        )
+
     else:
-        form = ProductUpdateForm(instance=product)
+        form = ProductUpdateForm(
+            instance=product
+        )
 
     return render(
         request,
@@ -992,17 +1037,35 @@ def update_product(request, product_id):
     )
 
 
+
+@user_passes_test(
+    can_manage_products,
+    login_url="/distributor-login/"
+)
 @require_POST
 def delete_product(request, product_id):
-    product = get_object_or_404(Product, pk=product_id)
+
+    product = get_object_or_404(
+        Product,
+        pk=product_id
+    )
 
     product_name = product.name
-    product.delete()
 
-    messages.success(
-        request,
-        f"Product '{product_name}' deleted successfully!"
-    )
+    try:
+        product.delete()
+
+        messages.success(
+            request,
+            f"Product '{product_name}' deleted successfully!"
+        )
+
+    except ProtectedError:
+
+        messages.error(
+            request,
+            f"Cannot delete '{product_name}' because it is used in existing invoices."
+        )
 
     return redirect("product_list")
 
@@ -1476,6 +1539,346 @@ def is_admin_user(user):
 def admin_register_page(request):
 
     return render(request, 'admin_register.html')
+
+
+def admin_forgot_password(request):
+
+    if request.method == "POST":
+
+        email = request.POST.get("email", "").strip()
+
+        User = get_user_model()
+
+        admin_user = User.objects.filter(
+            email__iexact=email,
+            is_staff=True,
+            is_active=True
+        ).first()
+
+        if admin_user:
+
+            now = timezone.now()
+
+            # Check 60-second OTP request restriction
+            previous_otp = PasswordResetOTP.objects.filter(
+                user=admin_user,
+                is_used=False
+            ).order_by("-created_at").first()
+
+            if (
+                previous_otp
+                and previous_otp.last_sent_at
+                and now - previous_otp.last_sent_at < timedelta(seconds=60)
+            ):
+                messages.error(
+                    request,
+                    "Please wait 60 seconds before requesting another OTP."
+                )
+                return redirect("admin_forgot_password")
+
+            # Generate a six-digit OTP
+            otp = str(secrets.randbelow(900000) + 100000)
+
+            # Delete previous unused OTP records
+            PasswordResetOTP.objects.filter(
+                user=admin_user,
+                is_used=False
+            ).delete()
+
+            # Store hashed OTP in database
+            otp_record = PasswordResetOTP.objects.create(
+                user=admin_user,
+                otp_hash=make_password(otp),
+                expires_at=now + timedelta(minutes=10),
+                last_sent_at=now
+            )
+
+            # Send OTP email
+            try:
+
+                subject = (
+                    "Advanced Billing System - Password Recovery OTP"
+                )
+
+                message = f"""
+Hello {admin_user.username},
+
+We received a request to reset your admin password.
+
+Your One-Time Password (OTP) is:
+
+{otp}
+
+This OTP is valid for 10 minutes.
+
+Please do not share this OTP with anyone.
+
+Regards,
+Advanced Billing System with QR
+"""
+
+                html_message = f"""
+                <html>
+                <body style="font-family: Arial;
+                             background: #f4f6fa;
+                             padding: 20px;">
+
+                    <div style="background: white;
+                                padding: 25px;
+                                border-radius: 10px;
+                                max-width: 500px;
+                                margin: auto;">
+
+                        <h2 style="color: #1769aa;">
+                            Advanced Billing System with QR
+                        </h2>
+
+                        <p>Hello {admin_user.username},</p>
+
+                        <p>Your password recovery OTP is:</p>
+
+                        <h1 style="color: #1769aa;
+                                   letter-spacing: 8px;">
+                            {otp}
+                        </h1>
+
+                        <p>This OTP is valid for
+                           <b>10 minutes</b>.</p>
+
+                        <p>Do not share this OTP with anyone.</p>
+
+                        <hr>
+
+                        <p>
+                            Regards,<br>
+                            Advanced Billing System Team
+                        </p>
+
+                    </div>
+                </body>
+                </html>
+                """
+
+                sent = send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[admin_user.email],
+                    html_message=html_message,
+                    fail_silently=False
+                )
+
+                if sent == 1:
+
+                    request.session["admin_reset_user_id"] = (
+                        admin_user.id
+                    )
+
+                    messages.success(
+                        request,
+                        "OTP sent successfully to your registered email."
+                    )
+
+                    return redirect("admin_verify_otp")
+
+                raise Exception("Email could not be sent.")
+
+            except Exception as e:
+
+                otp_record.delete()
+
+                print("OTP Email Error:", str(e))
+
+                messages.error(
+                    request,
+                    "Unable to send OTP. Check your email configuration."
+                )
+
+        else:
+
+            messages.error(
+                request,
+                "If the email belongs to an admin account, "
+                "an OTP will be sent."
+            )
+
+    return render(request, "forgot_password.html")
+
+
+def admin_verify_otp(request):
+
+    user_id = request.session.get("admin_reset_user_id")
+
+    if not user_id:
+        messages.error(request, "Please request a new OTP.")
+        return redirect("admin_forgot_password")
+
+    User = get_user_model()
+
+    admin_user = User.objects.filter(
+        id=user_id,
+        is_staff=True,
+        is_active=True
+    ).first()
+
+    if not admin_user:
+        request.session.pop("admin_reset_user_id", None)
+        return redirect("admin_forgot_password")
+
+    otp_record = PasswordResetOTP.objects.filter(
+        user=admin_user,
+        is_used=False
+    ).order_by("-created_at").first()
+
+    if not otp_record:
+        messages.error(request, "OTP not found. Request a new OTP.")
+        return redirect("admin_forgot_password")
+
+    if request.method == "POST":
+
+        entered_otp = request.POST.get("otp", "").strip()
+
+        if timezone.now() > otp_record.expires_at:
+            messages.error(request, "OTP has expired. Request a new OTP.")
+            return redirect("admin_forgot_password")
+
+        if otp_record.attempts >= 5:
+            otp_record.is_used = True
+            otp_record.save()
+
+            messages.error(
+                request,
+                "Maximum OTP attempts exceeded. Request a new OTP."
+            )
+            return redirect("admin_forgot_password")
+
+        otp_record.attempts += 1
+        otp_record.save()
+
+        if check_password(entered_otp, otp_record.otp_hash):
+
+            otp_record.is_verified = True
+            otp_record.save()
+
+            request.session["admin_otp_verified"] = True
+
+            messages.success(
+                request,
+                "OTP verified successfully. Create your new password."
+            )
+
+            return redirect("admin_reset_password")
+
+        messages.error(request, "Invalid OTP. Please try again.")
+
+    return render(request, "verify_otp.html")
+
+def admin_reset_password(request):
+
+    user_id = request.session.get("admin_reset_user_id")
+
+    if not user_id or not request.session.get("admin_otp_verified"):
+        messages.error(request, "Please verify your OTP first.")
+        return redirect("admin_forgot_password")
+
+    User = get_user_model()
+
+    admin_user = User.objects.filter(
+        id=user_id,
+        is_staff=True,
+        is_active=True
+    ).first()
+
+    if not admin_user:
+        request.session.flush()
+        return redirect("admin_forgot_password")
+
+    otp_record = PasswordResetOTP.objects.filter(
+        user=admin_user,
+        is_used=False,
+        is_verified=True
+    ).order_by("-created_at").first()
+
+    if not otp_record or timezone.now() > otp_record.expires_at:
+        messages.error(
+            request,
+            "Your OTP verification has expired. Please start again."
+        )
+        request.session.flush()
+        return redirect("admin_forgot_password")
+
+    if request.method == "POST":
+
+        password = request.POST.get("password", "")
+        confirm_password = request.POST.get("confirm_password", "")
+
+        if len(password) < 8:
+            messages.error(
+                request,
+                "Password must contain at least 8 characters."
+            )
+
+        elif password != confirm_password:
+            messages.error(
+                request,
+                "Passwords do not match."
+            )
+
+        else:
+
+            admin_user.set_password(password)
+            admin_user.save()
+
+            otp_record.is_used = True
+            otp_record.save()
+
+            request.session.flush()
+
+            messages.success(
+                request,
+                "Admin password changed successfully. Please log in."
+            )
+
+            return redirect("admin_login")
+
+    return render(request, "reset_password.html")
+
+
+class DistributorCustomerRegistrationAPI(generics.ListCreateAPIView):
+
+    serializer_class = CustomerRegistrationSerializer
+
+    authentication_classes = [SessionAuthentication]
+
+    permission_classes = [
+        IsAuthenticated,
+        IsDistributor,
+    ]
+
+    def get_queryset(self):
+        return Customer.objects.filter(
+            distributor=self.request.user
+        ).order_by('-id')
+
+    def perform_create(self, serializer):
+        serializer.save(
+            distributor=self.request.user
+        )
+
+@login_required
+def distributor_customer_register_page(request):
+
+    # Check whether the logged-in user belongs to Distributor group
+    if not request.user.groups.filter(name="Distributor").exists():
+        return HttpResponseForbidden(
+            "Only distributors can access this page."
+        )
+
+    return render(
+        request,
+        "distributor_customer_register.html"
+    )
+
 
 # ---------------- LOGOUT ----------------
 

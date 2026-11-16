@@ -2,25 +2,23 @@
 from django.conf import settings
 from decimal import Decimal
 from django.db import models
-
+from django.contrib.auth.models import User
 
 class PasswordResetOTP(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="password_reset_otps",
+        on_delete=models.CASCADE
     )
-    otp_hash = models.CharField(max_length=128)
+    otp_hash = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
-    last_sent_at = models.DateTimeField()
-    attempts = models.PositiveSmallIntegerField(default=0)
+    last_sent_at = models.DateTimeField(null=True, blank=True)
+    attempts = models.PositiveIntegerField(default=0)
     is_verified = models.BooleanField(default=False)
     is_used = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"OTP record for user ID {self.user_id}"
-
+        return f"OTP for {self.user.username}"
 
 class DistributorProfile(models.Model):
     user = models.OneToOneField(

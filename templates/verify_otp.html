@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verify Admin OTP</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f2f5fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            width: 350px;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px #ccc;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #1769aa;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        h2 { text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h2>Verify OTP</h2>
+
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+
+    <p>Enter the 6-digit OTP sent to your registered email.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <input
+            type="text"
+            name="otp"
+            placeholder="Enter 6-digit OTP"
+            maxlength="6"
+            pattern="[0-9]{6}"
+            inputmode="numeric"
+            required
+        >
+
+        <button type="submit">Verify OTP</button>
+    </form>
+
+</div>
+
+</body>
+</html>

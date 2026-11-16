@@ -3,6 +3,8 @@ from django.urls import path
 from . import views
 from core import views
 from core.views import invoice_list
+from .views import distributor_customer_register_page
+from .views import DistributorCustomerRegistrationAPI
 
 urlpatterns = [
     path("admin-login/", views.admin_login, name="admin_login"),
@@ -46,6 +48,16 @@ urlpatterns = [
     path('invoice/<int:invoice_id>/pdf/', views.invoice_pdf, name='invoice_pdf'),
 
     path('invoices/', invoice_list, name='invoice_list'),
+
+    path("admin-forgot-password/", views.admin_forgot_password, name="admin_forgot_password"),
+
+    path("admin-verify-otp/", views.admin_verify_otp, name="admin_verify_otp"),
+
+    path("admin-reset-password/", views.admin_reset_password, name="admin_reset_password"),
+
+    path('api/distributor/customers/', DistributorCustomerRegistrationAPI.as_view(), name='distributor_customer_api'),
+
+    path('distributor/customer-register/', distributor_customer_register_page, name='distributor_customer_register_page'),
 
     path("logout/", views.logout_view, name="logout"),
 

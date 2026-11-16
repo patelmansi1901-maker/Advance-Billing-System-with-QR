@@ -50,3 +50,44 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
         )
 
         return admin_user
+
+
+from rest_framework import serializers
+from .models import Customer
+
+
+class CustomerRegistrationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Customer
+
+        fields = [
+            'id',
+            'name',
+            'email',
+            'phone',
+            'address',
+        ]
+
+        read_only_fields = ['id']
+
+    def validate_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError(
+                "Customer name is required."
+            )
+
+        return value.strip()
+
+    def validate_phone(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError(
+                "Phone number must contain digits only."
+            )
+
+        if len(value) != 10:
+            raise serializers.ValidationError(
+                "Phone number must be exactly 10 digits."
+            )
+
+        return value
