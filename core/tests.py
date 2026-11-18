@@ -344,3 +344,75 @@ class AdminPasswordRecoveryTests(TestCase):
             self.admin.check_password("OldPassword@123")
         )
 
+
+from django.test import TestCase
+from .forms import ProductForm
+from .models import Category
+
+
+class ProductValidationTests(TestCase):
+
+    def valid_product_data(self):
+        return {
+            'name': 'Wireless Mouse',
+            'product_code': 'TEST-PROD-101',
+            'category': str(self.category.pk),            
+            'description': 'Wireless optical mouse',
+            'price': '500.00',
+            'stock': '20',
+            'unit': 'piece',
+            'gst_rate': '18',
+            'barcode': 'TESTBARCODE101',
+            'is_active': True,
+        }
+
+    def test_valid_product(self):
+        form = ProductForm(data=self.valid_product_data())
+
+        self.assertTrue(
+            form.is_valid(),
+            form.errors
+        )
+
+    def test_empty_product_name(self):
+        data = self.valid_product_data()
+        data['name'] = ''
+
+        form = ProductForm(data=data)
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('name', form.errors)
+
+    def test_zero_price(self):
+        data = self.valid_product_data()
+        data['price'] = '0'
+
+        form = ProductForm(data=data)
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('price', form.errors)
+
+    def test_negative_stock(self):
+        data = self.valid_product_data()
+        data['stock'] = '-5'
+
+        form = ProductForm(data=data)
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('stock', form.errors)
+
+    def test_invalid_gst(self):
+        data = self.valid_product_data()
+        data['gst_rate'] = '150'
+
+        form = ProductForm(data=data)
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('gst_rate', form.errors)
+
+    def setUp(self):
+        self.category = Category.objects.create(
+            name="Electronics",
+            description="Electronic products",
+            is_active=True
+        )

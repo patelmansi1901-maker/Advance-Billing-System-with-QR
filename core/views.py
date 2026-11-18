@@ -15,6 +15,7 @@ import qrcode
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
+from .forms import InvoiceReportFilterForm
 from .serializers import CustomerRegistrationSerializer
 from .api_permissions import IsDistributor
 from django.shortcuts import render
@@ -24,6 +25,7 @@ from django.db.models import Count, Prefetch
 from django.conf import settings
 from django.contrib.staticfiles import finders
 from io import BytesIO
+from django.http import HttpResponse, HttpResponseForbidden
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import get_template
@@ -51,6 +53,9 @@ from .forms import ProductForm, ProductUpdateForm
 from django.shortcuts import render, redirect, get_object_or_404
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Count, Avg
+from .models import Invoice, Product, Customer
+from django.utils.dateparse import parse_date
 from django.http import HttpResponseForbidden
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.mail import send_mail
@@ -967,10 +972,14 @@ def product_list(request):
     )
 
     context = {
-        "page_obj": page_obj,
-        "products": page_obj.object_list,
-        "search_query": search_query,
-        "total_products": paginator.count,
+    "page_obj": page_obj,
+    "products": page_obj.object_list,
+    "search_query": search_query,
+
+    # Product statistics
+    "total_products": products.count(),
+    "available_products": products.filter(stock__gt=0).count(),
+    "out_of_stock": products.filter(stock=0).count(),
     }
 
     return render(
@@ -1879,6 +1888,153 @@ def distributor_customer_register_page(request):
         "distributor_customer_register.html"
     )
 
+
+@login_required
+def admin_reports(request):
+    # Only admin/staff users can access reports
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return HttpResponseForbidden("You are not authorized to view this page.")
+
+    # Create the date filter form
+    report_form = InvoiceReportFilterForm(request.GET or None)
+
+    # Start with all invoices
+    invoices = Invoice.objects.select_related("customer").all()
+
+    # Apply the selected date range
+    if report_form.is_valid():
+        start_date = report_form.cleaned_data.get("start_date")
+        end_date = report_form.cleaned_data.get("end_date")
+
+        if start_date:
+            invoices = invoices.filter(invoice_date__date__gte=start_date)
+
+        if end_date:
+            invoices = invoices.filter(invoice_date__date__lte=end_date)
+
+    invoices = invoices.order_by("-invoice_date")
+
+    # Calculate totals from the filtered invoices
+    invoice_summary = invoices.aggregate(
+        total_invoices=Count("id"),
+        total_amount=Sum("grand_total"),
+        average_invoice=Avg("grand_total"),
+    )
+
+    # Product summary
+    product_summary = Product.objects.aggregate(
+        total_products=Count("id"),
+        total_stock=Sum("stock"),
+    )
+
+    context = {
+        "report_form": report_form,
+        "invoice_report": invoices,
+
+        # Task 5 summary values
+        "total_invoices": invoice_summary["total_invoices"] or 0,
+        "total_sales": invoice_summary["total_amount"] or 0,
+        "average_invoice": invoice_summary["average_invoice"] or 0,
+
+        # Other report values
+        "total_customers": Customer.objects.count(),
+        "total_products": product_summary["total_products"] or 0,
+        "total_stock": product_summary["total_stock"] or 0,
+        "product_report": Product.objects.order_by("name"),
+        "customer_report": Customer.objects.order_by("name"),
+    }
+
+    return render(request, "reports.html", context)
+
+def admin_reports_pdf(request):
+
+    # Check admin permission
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return HttpResponseForbidden(
+            "You are not authorized to download this report."
+        )
+
+    # Get date filter form
+    report_form = InvoiceReportFilterForm(request.GET or None)
+
+    # Start with all invoices
+    invoices = Invoice.objects.select_related(
+        "customer"
+    ).all()
+
+    # Validate and apply selected dates
+    if not report_form.is_valid():
+        return HttpResponse(
+            "Invalid date range. Please check your selected dates.",
+            status=400
+        )
+
+    start_date = report_form.cleaned_data.get("start_date")
+    end_date = report_form.cleaned_data.get("end_date")
+
+    if start_date:
+        invoices = invoices.filter(
+            invoice_date__date__gte=start_date
+        )
+
+    if end_date:
+        invoices = invoices.filter(
+            invoice_date__date__lte=end_date
+        )
+
+    invoices = invoices.order_by("-invoice_date")
+
+    # Calculate invoice summary
+    summary = invoices.aggregate(
+        total_invoices=Count("id"),
+        total_amount=Sum("grand_total")
+    )
+
+    total_invoices = summary["total_invoices"] or 0
+    total_amount = summary["total_amount"] or 0
+
+    # PDF template data
+    context = {
+        "invoice_report": invoices,
+        "total_invoices": total_invoices,
+        "total_amount": total_amount,
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+
+    # Generate HTML from PDF template
+    html = render_to_string(
+        "reports_pdf.html",
+        context
+    )
+
+    # Create PDF in memory
+    pdf_file = BytesIO()
+
+    pdf_status = pisa.CreatePDF(
+        html,
+        dest=pdf_file,
+        encoding="UTF-8"
+    )
+
+    # Check PDF generation
+    if pdf_status.err:
+        return HttpResponse(
+            "Error occurred while generating PDF.",
+            status=500
+        )
+
+    # Return downloadable PDF
+    response = HttpResponse(
+        pdf_file.getvalue(),
+        content_type="application/pdf"
+    )
+
+    response["Content-Disposition"] = (
+        'attachment; filename="invoice_report.pdf"'
+    )
+
+    return response
 
 # ---------------- LOGOUT ----------------
 

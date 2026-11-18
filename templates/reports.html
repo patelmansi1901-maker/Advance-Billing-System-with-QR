@@ -1,0 +1,243 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Reports | Advanced Billing System</title>
+    <link rel="stylesheet" href="{% static 'css/reports.css' %}">
+</head>
+<body>
+
+<div class="reports-page">
+
+    <header class="reports-header">
+        <div>
+            <h1>Reports</h1>
+            <p>Billing and business performance overview</p>
+        </div>
+
+        <a href="{% url 'admin_dashboard' %}" class="back-button">
+            Back to Dashboard
+        </a>
+    </header>
+
+    <!-- Summary cards -->
+    <section class="summary-grid">
+
+        <div class="summary-card">
+            <h3>Total Sales</h3>
+            <p class="summary-value">₹{{ total_sales|floatformat:2 }}</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Total Invoices</h3>
+            <p class="summary-value">{{ total_invoices }}</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Average Invoice</h3>
+            <p class="summary-value">₹{{ average_invoice|floatformat:2 }}</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Total Customers</h3>
+            <p class="summary-value">{{ total_customers }}</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Total Products</h3>
+            <p class="summary-value">{{ total_products }}</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Available Stock</h3>
+            <p class="summary-value">{{ total_stock }}</p>
+        </div>
+
+    </section>
+
+    <!-- Date filter -->
+    
+<!-- Invoice Report Date Filter -->
+<section class="report-section report-filter">
+
+    <h2>Generate Invoice Report</h2>
+
+    <p>
+        Select a date range to view invoices generated
+        during that period.
+    </p>
+
+    <form method="GET"
+          action="{% url 'admin_reports' %}"
+          class="filter-form">
+
+        <div>
+            {{ report_form.start_date.label_tag }}
+            {{ report_form.start_date }}
+
+            {% for error in report_form.start_date.errors %}
+                <small class="error-message">{{ error }}</small>
+            {% endfor %}
+        </div>
+
+        <div>
+            {{ report_form.end_date.label_tag }}
+            {{ report_form.end_date }}
+
+            {% for error in report_form.end_date.errors %}
+                <small class="error-message">{{ error }}</small>
+            {% endfor %}
+        </div>
+
+        {% for error in report_form.non_field_errors %}
+            <p class="error-message">{{ error }}</p>
+        {% endfor %}
+
+        <button type="submit" class="generate-button">
+    Generate Report
+</button>
+
+<button
+    type="submit"
+    formaction="{% url 'admin_reports_pdf' %}"
+    formmethod="get"
+    class="download-button">
+
+    Download PDF
+
+</button>
+
+        <a href="{% url 'admin_reports' %}"
+           class="reset-button">
+            Reset
+        </a>
+
+    </form>
+</section>
+
+    <!-- Invoice report -->
+    <section class="report-section">
+        <h2>Invoice Report</h2>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Invoice Number</th>
+                        <th>Customer</th>
+                        <th>Invoice Date</th>
+                        <th>Subtotal</th>
+                        <th>GST</th>
+                        <th>Grand Total</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for invoice in invoice_report %}
+                    <tr>
+                        <td>{{ invoice.invoice_number }}</td>
+                        <td>{{ invoice.customer.name }}</td>
+                        <td>{{ invoice.invoice_date|date:"d-m-Y" }}</td>
+                        <td>₹{{ invoice.subtotal|floatformat:2 }}</td>
+                        <td>₹{{ invoice.gst_amount|floatformat:2 }}</td>
+                        <td>₹{{ invoice.grand_total|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="empty-message">
+                            No invoices found for the selected dates.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Product report -->
+    <section class="report-section">
+        <h2>Product and Stock Report</h2>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Product Code</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for product in product_report %}
+                    <tr>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.product_code }}</td>
+                        <td>₹{{ product.price|floatformat:2 }}</td>
+                        <td>{{ product.stock }}</td>
+                        <td>
+                            {% if product.is_active %}
+                                <span class="active-status">Active</span>
+                            {% else %}
+                                <span class="inactive-status">Inactive</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="empty-message">
+                            No products available.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Customer report -->
+    <section class="report-section">
+        <h2>Customer Report</h2>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>City</th>
+                        <th>State</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for customer in customer_report %}
+                    <tr>
+                        <td>{{ customer.name }}</td>
+                        <td>{{ customer.email }}</td>
+                        <td>{{ customer.phone }}</td>
+                        <td>{{ customer.city }}</td>
+                        <td>{{ customer.state }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="empty-message">
+                            No customers available.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+
+</body>
+</html>

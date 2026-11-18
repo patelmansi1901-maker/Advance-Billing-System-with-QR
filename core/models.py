@@ -1,4 +1,3 @@
-
 from django.conf import settings
 from decimal import Decimal
 from django.db import models

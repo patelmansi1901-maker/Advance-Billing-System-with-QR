@@ -80,26 +80,40 @@
 
     <div class="sidebar-label">WORKSPACE</div>
 
-    <nav class="nav-list">
-      <a class="nav-link active" href="{% url 'admin_dashboard' %}">
+    
+<nav class="nav-list">
+
+    <a class="nav-link active" href="{% url 'admin_dashboard' %}">
         <span class="nav-icon">⌂</span> Dashboard
-      </a>
-      <a class="nav-link" href="#actions">
+    </a>
+
+    <a class="nav-link" href="#actions">
         <span class="nav-icon">▤</span> Billing Overview
-      </a>
-      <a class="nav-link" href="#customers">
+    </a>
+
+    <a class="nav-link" href="#customers">
         <span class="nav-icon">♙</span> Customers
-      </a>
-      <a class="nav-link" href="{% url 'distributor_login' %}">
+    </a>
+
+    <!-- NEW REPORTS LINK -->
+    <a class="nav-link" href="{% url 'admin_reports' %}">
+        <span class="nav-icon">▤</span> Reports
+    </a>
+
+    <a class="nav-link" href="{% url 'distributor_login' %}">
         <span class="nav-icon">⇄</span> Distributor Portal
-      </a>
-      <a class="nav-link" href="#payments">
+    </a>
+
+    <a class="nav-link" href="#payments">
         <span class="nav-icon">▦</span> QR Payments
-      </a>
-      <a class="nav-link" href="{% url 'admin:index' %}">
+    </a>
+
+    <a class="nav-link" href="{% url 'admin:index' %}">
         <span class="nav-icon">⚙</span> Settings
-      </a>
-    </nav>
+    </a>
+
+</nav>
+
 
     <div class="sidebar-bottom">
       <div class="profile-mini">

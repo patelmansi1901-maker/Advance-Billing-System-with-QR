@@ -31,17 +31,19 @@ urlpatterns = [
 
     path("customers/<int:customer_id>/delete/", views.customer_delete, name="customer_delete",),
 
-    path("products/", views.product_list, name="product_list"),
-    
-    path("products/add/", views.add_product, name="add_product"),
+    # Product Management URLs
 
-    path("products/<int:product_id>/update/", views.update_product, name="update_product"),
-    
-    path("products/<int:product_id>/delete/", views.delete_product, name="delete_product",),
+    path('products/', views.product_list, name='product_list'),
+
+    path('products/add/', views.add_product, name='product_add'),
+
+    path('products/edit/<int:product_id>/', views.update_product, name='product_edit'),
+
+    path('products/delete/<int:product_id>/', views.delete_product, name='product_delete'),
 
     path("invoice/create/", views.invoice_create, name="invoice_create"),
 
-     path("invoices/add/", views.invoice_add, name="invoice_add"),
+    path("invoices/add/", views.invoice_add, name="invoice_add"),
 
     path("invoices/", views.invoice_list, name="invoice_list"),
 

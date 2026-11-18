@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+
+    <title>Invoice Report</title>
+
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 20px;
+        }
+
+        body {
+            font-family: Helvetica, sans-serif;
+            font-size: 10px;
+            color: #333333;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #234B78;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #234B78;
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 11px;
+        }
+
+        .date-range {
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+
+        .summary-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .summary-table td {
+            width: 50%;
+            background-color: #EAF1F8;
+            border: 1px solid #B8C9DB;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .summary-title {
+            font-size: 11px;
+            color: #555555;
+        }
+
+        .summary-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #234B78;
+        }
+
+        h2 {
+            color: #234B78;
+            font-size: 15px;
+            margin-bottom: 10px;
+        }
+
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .invoice-table th {
+            background-color: #234B78;
+            color: white;
+            padding: 8px 5px;
+            border: 1px solid #234B78;
+            text-align: center;
+        }
+
+        .invoice-table td {
+            border: 1px solid #CCCCCC;
+            padding: 7px 5px;
+            text-align: center;
+        }
+
+        .invoice-table tr:nth-child(even) {
+            background-color: #F2F5F8;
+        }
+
+        .total-row {
+            font-weight: bold;
+            background-color: #EAF1F8;
+        }
+
+        .footer {
+            margin-top: 25px;
+            text-align: center;
+            font-size: 9px;
+            color: #777777;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #CCCCCC;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>Advanced Billing System with QR</h1>
+        <p>Invoice Report</p>
+    </div>
+
+    <div class="date-range">
+        <strong>Report Period:</strong>
+
+        {% if start_date %}
+            {{ start_date|date:"d-m-Y" }}
+        {% else %}
+            All Dates
+        {% endif %}
+
+        <strong> To </strong>
+
+        {% if end_date %}
+            {{ end_date|date:"d-m-Y" }}
+        {% else %}
+            All Dates
+        {% endif %}
+    </div>
+
+    <!-- Summary -->
+    <table class="summary-table">
+        <tr>
+            <td>
+                <div class="summary-title">
+                    Total Invoices
+                </div>
+
+                <div class="summary-value">
+                    {{ total_invoices }}
+                </div>
+            </td>
+
+            <td>
+                <div class="summary-title">
+                    Total Invoice Amount
+                </div>
+
+                <div class="summary-value">
+                    Rs. {{ total_amount|floatformat:2 }}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Invoice Details -->
+    <h2>Invoice Details</h2>
+
+    <table class="invoice-table">
+        <thead>
+            <tr>
+                <th>Sr. No.</th>
+                <th>Invoice Number</th>
+                <th>Customer</th>
+                <th>Invoice Date</th>
+                <th>Subtotal</th>
+                <th>GST Amount</th>
+                <th>Grand Total</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for invoice in invoice_report %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+
+                <td>
+                    {{ invoice.invoice_number }}
+                </td>
+
+                <td>
+                    {{ invoice.customer.name }}
+                </td>
+
+                <td>
+                    {{ invoice.invoice_date|date:"d-m-Y" }}
+                </td>
+
+                <td>
+                    Rs. {{ invoice.subtotal|floatformat:2 }}
+                </td>
+
+                <td>
+                    Rs. {{ invoice.gst_amount|floatformat:2 }}
+                </td>
+
+                <td>
+                    Rs. {{ invoice.grand_total|floatformat:2 }}
+                </td>
+            </tr>
+
+            {% empty %}
+            <tr>
+                <td colspan="7" class="no-data">
+                    No invoices found for the selected date range.
+                </td>
+            </tr>
+            {% endfor %}
+
+        </tbody>
+
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="6">
+                    Total Invoice Amount
+                </td>
+
+                <td>
+                    Rs. {{ total_amount|floatformat:2 }}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="footer">
+        <p>
+            Generated by Advanced Billing System with QR
+        </p>
+    </div>
+
+</body>
+</html>
