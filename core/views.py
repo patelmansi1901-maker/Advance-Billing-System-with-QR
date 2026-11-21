@@ -12,6 +12,16 @@ import os
 import json
 import base64
 import qrcode
+import cv2
+import numpy as np
+from PIL import Image
+import cv2
+import numpy as np
+import json
+from PIL import Image
+from .qr_utils import decode_qr_image
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -19,6 +29,7 @@ from .forms import InvoiceReportFilterForm
 from .serializers import CustomerRegistrationSerializer
 from .api_permissions import IsDistributor
 from django.shortcuts import render
+from datetime import datetime
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.template.loader import render_to_string
 from django.db.models import Count, Prefetch
@@ -1889,62 +1900,69 @@ def distributor_customer_register_page(request):
     )
 
 
+
 @login_required
 def admin_reports(request):
-    # Only admin/staff users can access reports
-    if not request.user.is_authenticated or not request.user.is_staff:
-        return HttpResponseForbidden("You are not authorized to view this page.")
+    invoices = Invoice.objects.all().order_by('-invoice_date')
 
-    # Create the date filter form
-    report_form = InvoiceReportFilterForm(request.GET or None)
+    start_date = request.GET.get('start_date', '').strip()
+    end_date = request.GET.get('end_date', '').strip()
 
-    # Start with all invoices
-    invoices = Invoice.objects.select_related("customer").all()
+    errors = []
+    filtered_invoices = Invoice.objects.none()
 
-    # Apply the selected date range
-    if report_form.is_valid():
-        start_date = report_form.cleaned_data.get("start_date")
-        end_date = report_form.cleaned_data.get("end_date")
+    # Run validation only after the user submits the form.
+    if request.GET.get('generate') == '1':
+
+        # Validate empty dates
+        if not start_date:
+            errors.append("Please select a start date.")
+
+        if not end_date:
+            errors.append("Please select an end date.")
+
+        # Validate date format
+        start = None
+        end = None
 
         if start_date:
-            invoices = invoices.filter(invoice_date__date__gte=start_date)
+            try:
+                start = datetime.strptime(
+                    start_date, '%Y-%m-%d'
+                ).date()
+            except ValueError:
+                errors.append("Please enter a valid start date.")
 
         if end_date:
-            invoices = invoices.filter(invoice_date__date__lte=end_date)
+            try:
+                end = datetime.strptime(
+                    end_date, '%Y-%m-%d'
+                ).date()
+            except ValueError:
+                errors.append("Please enter a valid end date.")
 
-    invoices = invoices.order_by("-invoice_date")
+        # Validate date range
+        if start and end and start > end:
+            errors.append(
+                "Start date cannot be later than end date."
+            )
 
-    # Calculate totals from the filtered invoices
-    invoice_summary = invoices.aggregate(
-        total_invoices=Count("id"),
-        total_amount=Sum("grand_total"),
-        average_invoice=Avg("grand_total"),
-    )
-
-    # Product summary
-    product_summary = Product.objects.aggregate(
-        total_products=Count("id"),
-        total_stock=Sum("stock"),
-    )
+        # Filter invoices only when validation succeeds
+        if not errors:
+            filtered_invoices = invoices.filter(
+                invoice_date__range=(start, end)
+            ).order_by('-invoice_date')
 
     context = {
-        "report_form": report_form,
-        "invoice_report": invoices,
-
-        # Task 5 summary values
-        "total_invoices": invoice_summary["total_invoices"] or 0,
-        "total_sales": invoice_summary["total_amount"] or 0,
-        "average_invoice": invoice_summary["average_invoice"] or 0,
-
-        # Other report values
-        "total_customers": Customer.objects.count(),
-        "total_products": product_summary["total_products"] or 0,
-        "total_stock": product_summary["total_stock"] or 0,
-        "product_report": Product.objects.order_by("name"),
-        "customer_report": Customer.objects.order_by("name"),
+        'invoices': filtered_invoices,
+        'start_date': start_date,
+        'end_date': end_date,
+        'errors': errors,
+        'total_invoices': filtered_invoices.count(),
     }
 
-    return render(request, "reports.html", context)
+    return render(request, 'reports.html', context)
+
 
 def admin_reports_pdf(request):
 
@@ -2035,6 +2053,276 @@ def admin_reports_pdf(request):
     )
 
     return response
+
+
+
+@login_required
+def qr_code_decoder(request):
+
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'message': 'Only POST requests are allowed.'
+        }, status=405)
+
+    # Get uploaded QR image
+    uploaded_file = request.FILES.get('image')
+
+    if not uploaded_file:
+        return JsonResponse({
+            'success': False,
+            'message': 'Please upload a QR code image.'
+        }, status=400)
+
+    # Validate image size
+    if uploaded_file.size > 5 * 1024 * 1024:
+        return JsonResponse({
+            'success': False,
+            'message': 'Image size must not exceed 5 MB.'
+        }, status=400)
+
+    # Validate file extension
+    allowed_extensions = ['.png', '.jpg', '.jpeg']
+
+    file_name = uploaded_file.name.lower()
+
+    if not any(file_name.endswith(ext) for ext in allowed_extensions):
+        return JsonResponse({
+            'success': False,
+            'message': 'Only PNG and JPG images are allowed.'
+        }, status=400)
+
+    try:
+        # Read uploaded image
+        image_bytes = uploaded_file.read()
+
+        # Decode QR using OpenCV utility
+        decoded_data = decode_qr_image(image_bytes)
+
+        if not decoded_data:
+            return JsonResponse({
+                'success': False,
+                'message': 'No QR code found in the image.'
+            }, status=400)
+
+        # Return decoded QR data
+        return JsonResponse({
+            'success': True,
+            'message': 'QR code read successfully.',
+            'decoded_data': decoded_data
+        }, status=200)
+
+    except ValueError as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=400)
+
+    except Exception:
+        return JsonResponse({
+            'success': False,
+            'message': 'An unexpected error occurred while reading QR code.'
+        }, status=500)
+
+
+
+
+
+def decode_qr_invoice(request):
+
+    invoice_data = None
+
+    if request.method == "POST":
+
+        # Get uploaded image
+        image_file = request.FILES.get("qr_image")
+
+        if not image_file:
+            messages.error(
+                request,
+                "Please select a QR code image before submitting."
+            )
+
+        elif image_file.size == 0:
+            messages.error(
+                request,
+                "The uploaded file is empty."
+            )
+
+        elif image_file.size > 5 * 1024 * 1024:
+            messages.error(
+                request,
+                "File size must not exceed 5 MB."
+            )
+
+        else:
+            try:
+                # Read uploaded image
+                image_bytes = image_file.read()
+
+                if not image_bytes:
+                    raise ValueError("The uploaded image is empty.")
+
+                # Convert image bytes into OpenCV image
+                image_array = np.frombuffer(
+                    image_bytes,
+                    dtype=np.uint8
+                )
+
+                image = cv2.imdecode(
+                    image_array,
+                    cv2.IMREAD_COLOR
+                )
+
+                if image is None:
+                    raise ValueError(
+                        "Invalid image. Please upload PNG or JPG."
+                    )
+
+                # Improve QR detection using grayscale and resizing
+                gray = cv2.cvtColor(
+                    image,
+                    cv2.COLOR_BGR2GRAY
+                )
+
+                gray = cv2.resize(
+                    gray,
+                    None,
+                    fx=2,
+                    fy=2,
+                    interpolation=cv2.INTER_CUBIC
+                )
+
+                detector = cv2.QRCodeDetector()
+
+                # First try resized grayscale image
+                qr_data, points, _ = detector.detectAndDecode(gray)
+
+                # Try original image if first attempt fails
+                if not qr_data or not qr_data.strip():
+                    qr_data, points, _ = detector.detectAndDecode(image)
+
+                if not qr_data or not qr_data.strip():
+                    raise ValueError(
+                        "No QR code found. Please upload a clear, valid QR code image."
+                    )
+
+                # Convert decoded QR text into JSON
+                data = json.loads(qr_data)
+
+                if not isinstance(data, dict):
+                    raise ValueError("Invalid invoice QR code data.")
+
+                # Validate required invoice fields
+                required_fields = [
+                    "invoice_number",
+                    "customer_name",
+                    "total_amount"
+                ]
+
+                missing_fields = [
+                    field for field in required_fields
+                    if field not in data
+                    or data[field] is None
+                    or (
+                        isinstance(data[field], str)
+                        and not data[field].strip()
+                    )
+                ]
+
+                if missing_fields:
+                    raise ValueError(
+                        "Missing invoice fields: "
+                        + ", ".join(missing_fields)
+                    )
+
+                # Validate invoice items
+                items = data.get("items", [])
+
+                if not isinstance(items, list):
+                    raise ValueError("Invalid product details.")
+
+                # Validate total amount
+                total_amount = float(data["total_amount"])
+
+                if not np.isfinite(total_amount) or total_amount < 0:
+                    raise ValueError("Invalid invoice total.")
+
+                # Validate each product
+                for item in items:
+
+                    if not isinstance(item, dict):
+                        raise ValueError(
+                            "Invalid product information."
+                        )
+
+                    product_name = item.get("product_name")
+
+                    quantity = int(item.get("quantity", 0))
+
+                    price = float(item.get("price", 0))
+
+                    if (
+                        not isinstance(product_name, str)
+                        or not product_name.strip()
+                    ):
+                        raise ValueError("Invalid product name.")
+
+                    if (
+                        quantity <= 0
+                        or not np.isfinite(price)
+                        or price < 0
+                    ):
+                        raise ValueError(
+                            "Invalid quantity or price."
+                        )
+
+                    # Calculate subtotal
+                    item["quantity"] = quantity
+                    item["price"] = price
+                    item["subtotal"] = quantity * price
+
+                # Prepare invoice information for template
+                invoice_data = {
+                    "invoice_number": data["invoice_number"],
+                    "customer_name": data["customer_name"],
+                    "product_count": data.get(
+                        "product_count",
+                        len(items)
+                    ),
+                    "total_amount": total_amount,
+                    "items": items
+                }
+
+                # Success message
+                messages.success(
+                    request,
+                    "QR Code decoded successfully! Invoice details loaded."
+                )
+
+            except json.JSONDecodeError:
+                messages.error(
+                    request,
+                    "Invalid QR data. The QR code does not contain valid JSON."
+                )
+
+            except (ValueError, TypeError, OverflowError) as e:
+                messages.error(request, str(e))
+
+            except Exception as e:
+                messages.error(
+                    request,
+                    f"Unable to process the QR image: {str(e)}"
+                )
+
+    return render(
+        request,
+        "qr_invoice_details.html",
+        {
+            "invoice_data": invoice_data
+        }
+    )
+
 
 # ---------------- LOGOUT ----------------
 

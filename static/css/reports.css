@@ -340,3 +340,140 @@ tbody tr:hover {
 .generate-button:hover {
     background-color: #173653;
 }
+
+
+/* Invoice Report Form */
+.report-form {
+    width: 100%;
+    padding: 25px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-sizing: border-box;
+}
+
+.report-form h2 {
+    font-size: 25px;
+    color: #233b5d;
+    margin: 0 0 25px;
+}
+
+/* Date fields */
+.date-fields {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+}
+
+.report-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    min-width: 220px;
+}
+
+.report-form .form-group label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #34445a;
+}
+
+.report-form input[type="date"] {
+    height: 44px;
+    padding: 8px 12px;
+    border: 1px solid #ccd5e0;
+    border-radius: 7px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.report-form input[type="date"]:focus {
+    outline: none;
+    border-color: #285486;
+}
+
+/* Buttons alignment */
+.report-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.generate-button,
+.download-button,
+.reset-button {
+    min-height: 48px;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: 0.3s ease;
+}
+
+.generate-button {
+    background: #285486;
+    color: white;
+}
+
+.generate-button:hover {
+    background: #193d65;
+}
+
+.download-button {
+    background: #c0392b;
+    color: white;
+}
+
+.download-button:hover {
+    background: #a52e23;
+}
+
+.reset-button {
+    background: #e9eef5;
+    color: #34445a;
+    border: 1px solid #d5deea;
+}
+
+.reset-button:hover {
+    background: #d6e0ed;
+}
+
+/* Error message */
+.alert-danger {
+    padding: 12px 18px;
+    margin-bottom: 20px;
+    background: #fdeaea;
+    border: 1px solid #f2caca;
+    border-radius: 7px;
+    color: #a52828;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+    .date-fields {
+        flex-direction: column;
+    }
+
+    .report-form .form-group {
+        width: 100%;
+    }
+
+    .report-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .generate-button,
+    .download-button,
+    .reset-button {
+        width: 100%;
+    }
+}

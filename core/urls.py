@@ -61,6 +61,12 @@ urlpatterns = [
 
     path('distributor/customer-register/', distributor_customer_register_page, name='distributor_customer_register_page'),
 
+    path('admin-reports/', views.admin_reports, name='admin_reports'),
+
+    path('api/qr/decode/', views.qr_code_decoder, name='qr_code_decoder'),
+
+    path('decode-qr-invoice/', views.decode_qr_invoice, name='decode_qr_invoice'),
+
     path("logout/", views.logout_view, name="logout"),
 
 ]

@@ -57,63 +57,120 @@
         </div>
 
     </section>
-
-    <!-- Date filter -->
     
 <!-- Invoice Report Date Filter -->
-<section class="report-section report-filter">
 
-    <h2>Generate Invoice Report</h2>
+<!-- Report Generation Form -->
 
-    <p>
-        Select a date range to view invoices generated
-        during that period.
-    </p>
+<!-- Invoice Report Date Filter -->
+<section class="report-section">
+    <div class="report-form">
 
-    <form method="GET"
-          action="{% url 'admin_reports' %}"
-          class="filter-form">
+        <h2>Generate Invoice Report</h2>
 
-        <div>
-            {{ report_form.start_date.label_tag }}
-            {{ report_form.start_date }}
+        <!-- Validation Errors -->
+        {% if errors %}
+            <div class="alert alert-danger">
+                {% for error in errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
 
-            {% for error in report_form.start_date.errors %}
-                <small class="error-message">{{ error }}</small>
-            {% endfor %}
-        </div>
+        <form method="GET"
+              action="{% url 'admin_reports' %}"
+              id="reportForm">
 
-        <div>
-            {{ report_form.end_date.label_tag }}
-            {{ report_form.end_date }}
+            <!-- Date Fields -->
+            <div class="date-fields">
 
-            {% for error in report_form.end_date.errors %}
-                <small class="error-message">{{ error }}</small>
-            {% endfor %}
-        </div>
+                <div class="form-group">
+                    <label for="start_date">Start Date</label>
+                    <input
+                        type="date"
+                        id="start_date"
+                        name="start_date"
+                        value="{{ start_date }}"
+                        required
+                    >
+                </div>
 
-        {% for error in report_form.non_field_errors %}
-            <p class="error-message">{{ error }}</p>
-        {% endfor %}
+                <div class="form-group">
+                    <label for="end_date">End Date</label>
+                    <input
+                        type="date"
+                        id="end_date"
+                        name="end_date"
+                        value="{{ end_date }}"
+                        required
+                    >
+                </div>
 
-        <button type="submit" class="generate-button">
-    Generate Report
-</button>
+            </div>
 
-<button
-    type="submit"
-    formaction="{% url 'admin_reports_pdf' %}"
-    formmethod="get"
-    class="download-button">
+            <!-- Action Buttons -->
+            <div class="report-actions">
 
-    Download PDF
+                <button type="submit"
+                        name="generate"
+                        value="1"
+                        class="generate-button">
+                    Generate Report
+                </button>
 
-</button>
+                <button type="submit"
+                        formaction="{% url 'admin_reports_pdf' %}"
+                        formmethod="get"
+                        class="download-button">
+                    Download PDF
+                </button>
 
-        <a href="{% url 'admin_reports' %}"
-           class="reset-button">
-            Reset
-        </a>
+                <a href="{% url 'admin_reports' %}"
+                   class="reset-button">
+                    Reset
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+</section>
+
+<!-- Display Report Results -->
+{% if request.GET.generate == '1' and not errors %}
+
+    <h3>Report Results</h3>
+
+    <p>Total Invoices: {{ total_invoices }}</p>
+
+    {% if invoices %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Invoice Number</th>
+                    <th>Customer</th>
+                    <th>Invoice Date</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for invoice in invoices %}
+                    <tr>
+                        <td>{{ invoice.invoice_number }}</td>
+                        <td>{{ invoice.customer.name }}</td>
+                        <td>{{ invoice.invoice_date|date:"d-m-Y" }}</td>
+                        <td>{{ invoice.grand_total }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No invoices found for the selected date range.</p>
+    {% endif %}
+
+{% endif %}
 
     </form>
 </section>
@@ -238,6 +295,53 @@
     </section>
 
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("reportForm");
+    const startDate = document.getElementById("start_date");
+    const endDate = document.getElementById("end_date");
+
+    if (!form || !startDate || !endDate) {
+        return;
+    }
+
+    // End date cannot be earlier than start date
+    startDate.addEventListener("change", function () {
+        endDate.min = startDate.value;
+
+        if (endDate.value && endDate.value < startDate.value) {
+            endDate.value = "";
+        }
+    });
+
+    // Start date cannot be later than end date
+    endDate.addEventListener("change", function () {
+        if (startDate.value) {
+            startDate.max = endDate.value;
+        }
+    });
+
+    form.addEventListener("submit", function (event) {
+
+        if (!startDate.value || !endDate.value) {
+            alert("Please select both Start Date and End Date.");
+            event.preventDefault();
+            return;
+        }
+
+        if (startDate.value > endDate.value) {
+            alert("Start Date cannot be later than End Date.");
+            event.preventDefault();
+            return;
+        }
+
+    });
+
+});
+</script>
+
 
 </body>
 </html>
