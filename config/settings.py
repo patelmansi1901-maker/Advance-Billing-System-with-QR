@@ -55,6 +55,14 @@ LOGIN_URL = '/admin-login/'
 LOGIN_REDIRECT_URL = '/admin-dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 ROOT_URLCONF = 'config.urls'
+# Session expires after 30 minutes of inactivity
+SESSION_COOKIE_AGE = 1800
+
+# Keep the session active while the user is browsing
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Session ends when the browser is closed
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 TEMPLATES = [
     {

@@ -1,5 +1,6 @@
 import secrets
 from datetime import timedelta
+from xml.parsers.expat import errors
 from django.contrib import messages
 from django.contrib.auth import (
     authenticate,
@@ -42,11 +43,13 @@ from django.shortcuts import get_object_or_404, render
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 from .models import Invoice
+from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.views.decorators.cache import never_cache
 from django.shortcuts import render
 from django.contrib.auth.decorators import user_passes_test
 from django.core.paginator import Paginator
@@ -87,6 +90,7 @@ from django.shortcuts import render, redirect
 from .models import DistributorProfile
 from decimal import Decimal,InvalidOperation
 from .forms import InvoiceForm, InvoiceItemFormSet
+from core.decorators import admin_required, distributor_required
 
 User = get_user_model()
 
@@ -306,19 +310,27 @@ def forgot_password(request):
 
 # ---------------- ADMIN LOGIN ----------------
 
+@never_cache
 def admin_login(request):
+
     if request.user.is_authenticated:
-        if is_admin(request.user):
+
+        if request.user.is_staff:
             return redirect('admin_dashboard')
 
-        if is_distributor(request.user):
-            return redirect('distributor_dashboard')
-
-        logout(request)
+        return redirect('distributor_dashboard')
 
     if request.method == 'POST':
+
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
+
+        if not username or not password:
+            messages.error(
+                request,
+                'Please enter username and password.'
+            )
+            return render(request, 'admin_login.html')
 
         user = authenticate(
             request,
@@ -326,62 +338,96 @@ def admin_login(request):
             password=password
         )
 
-        if user is not None and is_admin(user):
+        if user is not None and user.is_active and user.is_staff:
+
             login(request, user)
+
+            messages.success(
+                request,
+                'Admin login successful!'
+            )
+
             return redirect('admin_dashboard')
 
         messages.error(
             request,
-            'Invalid credentials or admin access not permitted.'
+            'Invalid admin username or password.'
         )
 
     return render(request, 'admin_login.html')
 
-
 # ---------------- DISTRIBUTOR LOGIN ----------------
 
+@never_cache
 def distributor_login(request):
-    # If the user is already logged in as a Distributor
+
     if request.user.is_authenticated:
-        if request.user.groups.filter(name="Distributor").exists():
-            return redirect("distributor_dashboard")
 
-    if request.method == "POST":
-        username = request.POST.get("username", "").strip()
-        password = request.POST.get("password", "")
+        if request.user.is_staff:
+            return redirect('admin_dashboard')
 
-        # Initialize the variable before using it
-        matching_user = None
+        if request.user.groups.filter(
+            name='Distributor'
+        ).exists():
+            return redirect('distributor_dashboard')
 
-        # Authenticate the submitted credentials
-        matching_user = authenticate(
+        messages.error(request, 'You are not authorized.')
+        logout(request)
+
+    if request.method == 'POST':
+
+        login_input = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+
+        User = get_user_model()
+
+# Allow login using either username or registered email
+        matched_user = User.objects.filter(
+        email__iexact=login_input
+        ).first()
+
+        if matched_user:
+            username = matched_user.username
+        else:
+            username = login_input
+
+        if not username or not password:
+            messages.error(
+                request,
+                'Please enter username and password.'
+            )
+            return render(request, 'distributor_login.html')
+
+        user = authenticate(
             request,
             username=username,
             password=password
         )
 
-        if matching_user is not None:
-            # Allow only users belonging to the Distributor group
-            if matching_user.groups.filter(name="Distributor").exists():
-                login(request, matching_user)
+        if user is not None and user.is_active:
+
+            is_distributor = user.groups.filter(
+                name='Distributor'
+            ).exists()
+
+            if is_distributor and not user.is_staff:
+
+                login(request, user)
+
                 messages.success(
                     request,
-                    "Welcome! You have logged in successfully."
+                    'Distributor login successful!'
                 )
-                return redirect("distributor_dashboard")
 
-            messages.error(
-                request,
-                "Access denied. This account is not registered as a Distributor."
-            )
-        else:
-            messages.error(
-                request,
-                "Invalid username or password."
-            )
+                return redirect('distributor_dashboard')
 
-    # Display the login page for GET requests
-    return render(request, "distributor_login.html")
+        messages.error(
+            request,
+            'Invalid distributor username or password.'
+        )
+
+    return render(request, 'distributor_login.html')
+
 
 @login_required(login_url="distributor_login")
 def distributor_profile(request):
@@ -405,47 +451,39 @@ def distributor_profile(request):
 
 # ---------------- ADMIN DASHBOARD ----------------
 
-@login_required(login_url='admin_login')
+@login_required(login_url='/admin-login/')
+@never_cache
+@admin_required
 def admin_dashboard(request):
-    if not is_admin(request.user):
-        if is_distributor(request.user):
-            return redirect('distributor_dashboard')
-        logout(request)
-        messages.error(request, 'Admin access required.')
-        return redirect('admin_login')
 
-    context = {
-        "total_customers": Customer.objects.count(),
-        "total_distributors": DistributorProfile.objects.count(),
-        "recent_customers": Customer.objects.order_by("-created_at")[:5],
-        "total_products": Product.objects.count(),
-    }
-    return render(request, 'admin_dashboard.html', context)
+    if not request.user.is_staff:
+        messages.error(
+            request,
+            'You are not authorized to access Admin Dashboard.'
+        )
+        return redirect('distributor_login')
 
+    return render(request, 'admin_dashboard.html')
 
 # ---------------- DISTRIBUTOR DASHBOARD ----------------
 
-@login_required(login_url='distributor_login')
+@login_required(login_url='/distributor-login/')
+@never_cache
+@distributor_required
 def distributor_dashboard(request):
-    if not is_distributor(request.user):
-        if is_admin(request.user):
-            return redirect('admin_dashboard')
-        logout(request)
-        messages.error(request, 'Distributor access required.')
-        return redirect('distributor_login')
 
-    # Customer has no distributor-owner field yet, so do not expose all
-    # customers to each distributor. Add ownership before listing their data.
-    
-    my_customers = Customer.objects.filter(distributor=request.user).order_by("-id")
+    is_distributor = request.user.groups.filter(
+        name='Distributor'
+    ).exists()
 
-    context = {
-    "my_customers": my_customers.count(),
-    "recent_customers": my_customers[:5],
-    "total_products": Product.objects.count(),
-}
-    return render(request, 'distributor_dashboard.html', context)
+    if not is_distributor or request.user.is_staff:
+        messages.error(
+            request,
+            'You are not authorized to access Distributor Dashboard.'
+        )
+        return redirect('admin_login')
 
+    return render(request, 'distributor_dashboard.html')
 
 @login_required(login_url="distributor_login")
 def update_distributor_profile(request):
@@ -540,7 +578,6 @@ def update_distributor_profile(request):
         },
     )
 
-
 def distributor_register(request):
     errors = {}
     values = {
@@ -592,13 +629,19 @@ def distributor_register(request):
             errors["email"] = "This email is already registered."
 
         # Validate password
+        # Validate password
         if not password:
             errors["password"] = "Password is required."
         elif len(password) < 8:
             errors["password"] = "Password must contain at least 8 characters."
         elif len(password) > 128:
             errors["password"] = "Password cannot exceed 128 characters."
-
+        else:
+            try:
+               validate_password(password)
+            except ValidationError as exc:
+                errors["password"] = " ".join(exc.messages)
+        
         if password != confirm_password:
             errors["confirm_password"] = "Passwords do not match."
 
@@ -667,7 +710,7 @@ def distributor_register(request):
         },
     )
 
-
+@distributor_required
 def customer_add(request):
     errors = {}
     values = {
@@ -1219,6 +1262,7 @@ def invoice_add(request):
 
 
 @login_required
+@distributor_required
 def invoice_create(request):
 
     # Fetch products for JavaScript calculations
@@ -1902,6 +1946,7 @@ def distributor_customer_register_page(request):
 
 
 @login_required
+@admin_required
 def admin_reports(request):
     invoices = Invoice.objects.all().order_by('-invoice_date')
 
@@ -2333,3 +2378,14 @@ def logout_view(request):
     return redirect('home')
 
 
+@login_required
+def user_logout(request):
+
+    logout(request)
+
+    messages.success(
+        request,
+        'You have been logged out successfully.'
+    )
+
+    return redirect('home')

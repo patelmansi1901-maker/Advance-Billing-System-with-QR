@@ -140,21 +140,23 @@
     {% csrf_token %}
 
     <label for="name">Full Name</label>
-    <input
-        type="text"
-        id="name"
-        name="name"
-        value="{{ values.name|default:'' }}"
-        required
-        minlength="2"
-        maxlength="100"
-        pattern="[A-Za-z][A-Za-z '\-]*"
-        title="Enter a valid name."
-        autocomplete="name"
-    >
-    {% if errors.name %}
-        <p class="error">{{ errors.name }}</p>
-    {% endif %}
+
+<input
+    type="text"
+    id="name"
+    name="name"
+    value="{{ values.name|default:'' }}"
+    placeholder="Enter your full name"
+    required
+    minlength="2"
+    maxlength="100"
+    pattern="[A-Za-z][A-Za-z '\-]*"
+    autocomplete="name"
+    title="Use letters, spaces, apostrophes or hyphens."
+>
+{% if errors.name %}
+    <p class="error">{{ errors.name }}</p>
+{% endif %}
 
     <label for="email">Email Address</label>
     <input
@@ -170,50 +172,58 @@
         <p class="error">{{ errors.email }}</p>
     {% endif %}
 
-    <label for="phone">Phone Number</label>
-    <input
-        type="tel"
-        id="phone"
-        name="phone"
-        value="{{ values.phone|default:'' }}"
-        required
-        pattern="[0-9]{10}"
-        maxlength="10"
-        inputmode="numeric"
-        title="Enter exactly 10 digits."
-        autocomplete="tel"
-    >
-    {% if errors.phone %}
-        <p class="error">{{ errors.phone }}</p>
-    {% endif %}
+    <label for="phone">Mobile Number</label>
+
+<input
+    type="tel"
+    id="phone"
+    name="phone"
+    value="{{ values.phone|default:'' }}"
+    placeholder="Enter 10-digit mobile number"
+    required
+    pattern="[0-9]{10}"
+    minlength="10"
+    maxlength="10"
+    inputmode="numeric"
+    autocomplete="tel"
+    title="Enter exactly 10 digits."
+>
+{% if errors.phone %}
+    <p class="error">{{ errors.phone }}</p>
+{% endif %}
 
     <label for="password">Password</label>
-    <input
-        type="password"
-        id="password"
-        name="password"
-        required
-        minlength="8"
-        maxlength="128"
-        autocomplete="new-password"
-    >
-    {% if errors.password %}
-        <p class="error">{{ errors.password }}</p>
-    {% endif %}
 
-    <label for="confirm_password">Confirm Password</label>
-    <input
-        type="password"
-        id="confirm_password"
-        name="confirm_password"
-        required
-        minlength="8"
-        maxlength="128"
-        autocomplete="new-password"
-    >
-    {% if errors.confirm_password %}
-        <p class="error">{{ errors.confirm_password }}</p>
-    {% endif %}
+<input
+    type="password"
+    id="password"
+    name="password"
+    placeholder="Create a strong password"
+    required
+    minlength="8"
+    maxlength="128"
+    autocomplete="new-password"
+>
+{% if errors.password %}
+    <p class="error">{{ errors.password }}</p>
+{% endif %}
+
+<label for="confirm_password">Confirm Password</label>
+
+<input
+    type="password"
+    id="confirm_password"
+    name="confirm_password"
+    placeholder="Enter password again"
+    required
+    minlength="8"
+    maxlength="128"
+    autocomplete="new-password"
+>
+
+{% if errors.confirm_password %}
+    <p class="error">{{ errors.confirm_password }}</p>
+{% endif %}
 
     <button type="submit" class="register-button">
         Register
