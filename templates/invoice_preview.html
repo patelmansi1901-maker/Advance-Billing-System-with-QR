@@ -1,0 +1,302 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Preview Invoice</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            background: #f1f5f9;
+            font-family: Arial, sans-serif;
+            color: #1e293b;
+        }
+
+        .invoice-container {
+            max-width: 950px;
+            margin: auto;
+            padding: 40px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #2563eb;
+            margin: 0;
+        }
+
+        .invoice-info {
+            margin: 25px 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .details {
+            line-height: 1.8;
+        }
+
+        .details h3 {
+            color: #2563eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+        }
+
+        th, td {
+            padding: 13px;
+            border: 1px solid #e2e8f0;
+            text-align: left;
+        }
+
+        th {
+            background: #2563eb;
+            color: white;
+        }
+
+        .total-section {
+            margin-top: 25px;
+            margin-left: auto;
+            width: 300px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+        }
+
+        .grand-total {
+            border-top: 2px solid #2563eb;
+            font-size: 20px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+
+        .qr-section {
+            text-align: center;
+            margin-top: 35px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 10px;
+        }
+
+        .qr-section img {
+            width: 170px;
+            height: 170px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .btn-back {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-print {
+            background: #2563eb;
+            color: white;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .invoice-container {
+                box-shadow: none;
+                padding: 20px;
+            }
+
+            .buttons {
+                display: none;
+            }
+        }
+
+        @media(max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .invoice-container {
+                padding: 15px;
+            }
+
+            .header, .invoice-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 7px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="invoice-container">
+
+    <div class="header">
+        <div>
+            <h1>INVOICE</h1>
+            <p>Advance Billing System with QR</p>
+        </div>
+
+        <div>
+            <h3>{{ invoice.invoice_number }}</h3>
+            <p>
+                Date:
+                {% if invoice_date %}
+                {{ invoice_date|date:"d-m-Y" }}
+                {% else %}
+                    Date not available
+                {% endif %}
+                </p>        
+            </div>
+    </div>
+
+    <div class="invoice-info">
+
+        <div class="details">
+            <h3>Customer Details</h3>
+
+            <p>
+                <strong>Name:</strong>
+                {{ invoice.customer.name }}
+            </p>
+        </div>
+
+        <div class="details">
+            <h3>Distributor Details</h3>
+
+            <p>
+                <strong>Name:</strong>
+                {{ invoice.distributor.username }}
+            </p>
+        </div>
+
+    </div>
+
+    <h3>Product Details</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Sr. No.</th>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>GST %</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for item in invoice_items %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.product.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>₹{{ item.price }}</td>
+                <td>{{ item.gst_rate }}%</td>
+                <td>₹{{ item.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">No products found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total-section">
+
+        <div class="total-row">
+            <span>Grand Total:</span>
+            <span>₹{{ invoice.grand_total }}</span>
+        </div>
+
+        <div class="total-row grand-total">
+            <span>Amount:</span>
+            <span>₹{{ invoice.grand_total }}</span>
+        </div>
+
+    </div>
+
+    <div class="qr-section">
+
+        <h3>Invoice QR Code</h3>
+
+        <img
+            src="data:image/png;base64,{{ qr_code }}"
+            alt="Invoice QR Code"
+        >
+
+        <p>Scan this QR code to view invoice information.</p>
+
+    </div>
+
+    <div class="buttons">
+
+        <a href="{% url 'invoice_list' %}"
+           class="btn btn-back">
+            Back to Invoices
+        </a>
+
+        <a href="{% url 'invoice_pdf' invoice.id %}"
+       class="btn btn-print">
+        Download PDF
+        </a>
+
+        <button onclick="window.print()"
+                class="btn btn-print">
+            Print Invoice
+        </button>
+
+    </div>
+
+</div>
+
+</body>
+</html>

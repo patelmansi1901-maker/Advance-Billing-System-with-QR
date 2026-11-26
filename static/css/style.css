@@ -426,3 +426,38 @@ h1 {
     background: #eadcff;
     color: #7c3aed;
 }
+
+/* Invoice Preview QR Code */
+
+.invoice-qr-section {
+    text-align: center;
+    margin: 25px auto;
+    padding: 20px;
+}
+
+.invoice-qr-image {
+    width: 180px;
+    height: 180px;
+    object-fit: contain;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: white;
+}
+
+.invoice-preview {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+@media print {
+    button {
+        display: none;
+    }
+
+    .invoice-preview {
+        box-shadow: none;
+    }
+}

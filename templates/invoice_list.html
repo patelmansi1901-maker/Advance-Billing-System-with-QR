@@ -165,7 +165,6 @@
     <table>
         <thead>
             <tr>
-                <th>Sr. No.</th>
                 <th>Invoice Number</th>
                 <th>Customer Name</th>
                 <th>Invoice Date</th>
@@ -175,6 +174,7 @@
                 <th>GST</th>
                 <th>Total Bill</th>
                 <th>QR Code</th>
+                <th>Preview</th>
                 <th>PDF</th>
             </tr>
         </thead>
@@ -273,10 +273,23 @@
                             Download QR
                         </a>
 
+                         <!-- Invoice Preview Button -->
+                        <td>
+                            <a href="{% url 'invoice_preview' invoice.id %}"
+                            class="btn btn-primary">
+                                Preview Invoice
+                            </a>
+                        </td>
+
                         <td>
                             <a href="{% url 'invoice_pdf' invoice.id %}"
                             class="qr-button">
                                 Download PDF
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{% url 'invoice_details' invoice.id %}">
+                                View Details
                             </a>
                         </td>
                     {% else %}
@@ -292,7 +305,7 @@
             {% empty %}
 
             <tr>
-                <td colspan="10" class="empty">
+                <td colspan="11" class="empty">
                     No invoice records found.
                 </td>
             </tr>

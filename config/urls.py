@@ -3,6 +3,8 @@ from django.urls import path, include
 from core.api_views import AdminRegistrationAPIView
 from core import views
 from core.views import admin_register_page
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path("django-admin/", admin.site.urls),
@@ -22,3 +24,8 @@ urlpatterns = [
     path("admin-reports/", views.admin_reports, name="admin_reports"),
     path("admin-reports/pdf/", views.admin_reports_pdf, name="admin_reports_pdf",),
 ]
+if settings.DEBUG:
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT
+    )

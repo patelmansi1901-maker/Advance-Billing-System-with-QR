@@ -23,6 +23,8 @@ from PIL import Image
 from .qr_utils import decode_qr_image
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.db.models import DateField, DateTimeField
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -1445,34 +1447,101 @@ def invoice_list(request):
     })
 
 
-@login_required
 
+@login_required
 def invoice_pdf(request, invoice_id):
+
+    # Get invoice from database
     invoice = get_object_or_404(
-        Invoice.objects.prefetch_related('items__product'),
+        Invoice.objects.select_related(
+            'customer',
+            'distributor'
+        ).prefetch_related(
+            'items__product'
+        ),
         id=invoice_id
     )
 
-    items = invoice.items.select_related('product').all()
+    # Allow admin and invoice owner only
+    if not request.user.is_staff:
+        if invoice.distributor_id != request.user.id:
+            raise PermissionDenied
 
-    context = {
-        'invoice': invoice,
-        'items': items,
+    # Get invoice items
+    invoice_items = invoice.items.all()
+
+    # Find invoice date safely
+    invoice_date = None
+
+    for field_name in [
+        'invoice_date',
+        'date',
+        'created_on',
+        'created',
+        'timestamp'
+    ]:
+        if hasattr(invoice, field_name):
+            invoice_date = getattr(invoice, field_name)
+
+            if invoice_date:
+                break
+
+    invoice_date_text = (
+        str(invoice_date) if invoice_date
+        else "Date not available"
+    )
+
+    # Prepare QR information
+    qr_data = {
+        "invoice_number": invoice.invoice_number,
+        "customer_name": invoice.customer.name,
+        "product_count": invoice_items.count(),
+        "total_amount": str(invoice.grand_total),
+        "date": invoice_date_text
     }
 
-    html = render_to_string('invoice_pdf.html', context)
+    # Convert information into JSON
+    qr_text = json.dumps(qr_data)
 
-    pdf_file = BytesIO()
-    pisa_status = pisa.CreatePDF(html, dest=pdf_file)
+    # Generate QR code
+    qr = qrcode.QRCode(
+        version=1,
+        box_size=10,
+        border=4
+    )
 
-    if pisa_status.err:
-        return HttpResponse(
-            'Error generating PDF',
-            status=500
-        )
+    qr.add_data(qr_text)
+    qr.make(fit=True)
 
+    qr_image = qr.make_image(
+        fill_color="black",
+        back_color="white"
+    )
+
+    # Convert QR image into Base64
+    buffer = BytesIO()
+    qr_image.save(buffer, format="PNG")
+
+    qr_base64 = base64.b64encode(
+        buffer.getvalue()
+    ).decode("utf-8")
+
+    # Prepare template context
+    context = {
+        'invoice': invoice,
+        'invoice_items': invoice_items,
+        'qr_code': qr_base64,
+        'invoice_date_text': invoice_date_text,
+    }
+
+    # Generate HTML from PDF template
+    html = render_to_string(
+        'invoice_pdf.html',
+        context
+    )
+
+    # Create PDF response
     response = HttpResponse(
-        pdf_file.getvalue(),
         content_type='application/pdf'
     )
 
@@ -1480,7 +1549,22 @@ def invoice_pdf(request, invoice_id):
         f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
     )
 
+    # Convert HTML into PDF
+    pdf_status = pisa.CreatePDF(
+        src=html,
+        dest=response,
+        encoding='UTF-8'
+    )
+
+    # Handle PDF generation errors
+    if pdf_status.err:
+        return HttpResponse(
+            "Error generating invoice PDF. Please check the PDF template.",
+            status=500
+        )
+
     return response
+
 
 # 9. Resolve local static and media image paths for xhtml2pdf
 def link_callback(uri, rel):
@@ -2170,9 +2254,6 @@ def qr_code_decoder(request):
         }, status=500)
 
 
-
-
-
 def decode_qr_invoice(request):
 
     invoice_data = None
@@ -2368,6 +2449,197 @@ def decode_qr_invoice(request):
         }
     )
 
+@login_required
+def generate_invoice_qr(request, invoice_id):
+
+    # Fetch saved invoice from database
+    invoice = get_object_or_404(
+        Invoice.objects.select_related('customer'),
+        id=invoice_id
+    )
+
+    # Fetch invoice details
+    invoice_data = {
+        "invoice_id": invoice.id,
+        "invoice_number": invoice.invoice_number,
+        "customer_name": invoice.customer.name,
+        "total_amount": str(invoice.grand_total),
+        "invoice_date": invoice.invoice_date.strftime("%d-%m-%Y"),
+    }
+
+    # Convert invoice data into JSON
+    qr_data = json.dumps(invoice_data, indent=4)
+
+    # Generate QR code
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+
+    # Create QR image
+    qr_image = qr.make_image(
+        fill_color="black",
+        back_color="white"
+    )
+
+    # Save image in memory
+    buffer = BytesIO()
+    qr_image.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    # Return QR image
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type="image/png"
+    )
+
+    response['Content-Disposition'] = (
+        f'inline; filename="invoice_{invoice.id}_qr.png"'
+    )
+
+    return response
+
+
+@login_required
+def invoice_preview(request, invoice_id):
+
+    # Get invoice from database
+    invoice = get_object_or_404(
+        Invoice.objects.select_related(
+            'customer',
+            'distributor'
+        ).prefetch_related(
+            'items__product'
+        ),
+        id=invoice_id
+    )
+
+    # Allow admin and invoice owner only
+    if not request.user.is_staff:
+        if invoice.distributor_id != request.user.id:
+            raise PermissionDenied
+
+    # Get invoice items
+    invoice_items = invoice.items.all()
+
+    # Get invoice date safely
+    invoice_date = None
+
+    for field_name in [
+        'invoice_date',
+        'date',
+        'created_on',
+        'created',
+        'timestamp'
+    ]:
+        if hasattr(invoice, field_name):
+            invoice_date = getattr(invoice, field_name)
+
+            if invoice_date:
+                break
+
+    # Convert invoice date to text
+    if invoice_date:
+        invoice_date_text = str(invoice_date)
+    else:
+        invoice_date_text = "Date not available"
+
+    # Prepare QR code information
+    qr_data = {
+        "invoice_number": invoice.invoice_number,
+        "customer_name": invoice.customer.name,
+        "product_count": invoice_items.count(),
+        "total_amount": str(invoice.grand_total),
+        "date": invoice_date_text
+    }
+
+    # Convert invoice information into JSON
+    qr_text = json.dumps(qr_data)
+
+    # Generate QR code
+    qr = qrcode.QRCode(
+        version=1,
+        box_size=10,
+        border=4
+    )
+
+    qr.add_data(qr_text)
+    qr.make(fit=True)
+
+    qr_image = qr.make_image(
+        fill_color="black",
+        back_color="white"
+    )
+
+    # Convert QR image into Base64
+    buffer = BytesIO()
+    qr_image.save(buffer, format="PNG")
+
+    qr_base64 = base64.b64encode(
+        buffer.getvalue()
+    ).decode()
+
+    # Prepare context
+    context = {
+        'invoice': invoice,
+        'invoice_items': invoice_items,
+        'qr_code': qr_base64,
+        'invoice_date': invoice_date,
+        'invoice_date_text': invoice_date_text,
+    }
+
+    return render(
+        request,
+        'invoice_preview.html',
+        context
+    )
+
+@login_required
+def invoice_details(request, invoice_id):
+
+    # Fetch invoice and its related customer from database
+    invoice = get_object_or_404(
+        Invoice.objects.select_related('customer', 'distributor'),
+        id=invoice_id
+    )
+
+    # Allow staff to view all invoices.
+    # Distributors can view only their own invoices.
+    if not request.user.is_staff:
+        if invoice.distributor_id != request.user.id:
+            raise PermissionDenied
+
+    # Find the actual date field defined in the Invoice model
+    invoice_date = None
+
+    for field in Invoice._meta.get_fields():
+        if isinstance(field, (DateField, DateTimeField)):
+            if field.name in ('id',):
+                continue
+
+            value = getattr(invoice, field.name, None)
+
+            if value is not None:
+                invoice_date = value
+                break
+
+    context = {
+        'invoice_id': invoice.id,
+        'customer_name': invoice.customer.name,
+        'total_amount': invoice.grand_total,
+        'invoice_date': invoice_date,
+    }
+
+    return render(
+        request,
+        'invoice_details.html',
+        context
+    )
 
 # ---------------- LOGOUT ----------------
 

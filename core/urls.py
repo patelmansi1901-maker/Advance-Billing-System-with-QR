@@ -5,6 +5,8 @@ from core import views
 from core.views import invoice_list
 from .views import distributor_customer_register_page
 from .views import DistributorCustomerRegistrationAPI
+from .views import generate_invoice_qr
+from .views import invoice_preview
 
 urlpatterns = [
     path("admin-login/", views.admin_login, name="admin_login"),
@@ -51,6 +53,8 @@ urlpatterns = [
 
     path('invoices/', invoice_list, name='invoice_list'),
 
+    path('invoice/<int:invoice_id>/details/', views.invoice_details, name='invoice_details'),
+
     path("admin-forgot-password/", views.admin_forgot_password, name="admin_forgot_password"),
 
     path("admin-verify-otp/", views.admin_verify_otp, name="admin_verify_otp"),
@@ -66,6 +70,10 @@ urlpatterns = [
     path('api/qr/decode/', views.qr_code_decoder, name='qr_code_decoder'),
 
     path('decode-qr-invoice/', views.decode_qr_invoice, name='decode_qr_invoice'),
+
+    path('invoice/<int:invoice_id>/qr/', generate_invoice_qr, name='generate_invoice_qr'),
+
+    path('invoice/<int:invoice_id>/preview/', invoice_preview, name='invoice_preview'),
 
     path("logout/", views.logout_view, name="logout"),
 

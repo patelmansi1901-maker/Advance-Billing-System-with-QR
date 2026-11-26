@@ -168,9 +168,6 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import User
 
-
-
-
 class Invoice(models.Model):
     invoice_number = models.CharField(max_length=30, unique=True)
 
@@ -207,6 +204,12 @@ class Invoice(models.Model):
         max_digits=12,
         decimal_places=2,
         default=0
+    )
+
+    qr_code = models.ImageField(
+    upload_to='invoice_qr_codes/',
+    blank=True,
+    null=True
     )
 
     def __str__(self):
