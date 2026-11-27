@@ -1,8 +1,9 @@
+{% load static %}
  
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Create Invoice</title>
+    <title>Create Invoice | BillFlow</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -78,10 +79,12 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body>
-
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 <div class="invoice-container">
 
     <h2>Create New Invoice</h2>
@@ -217,6 +220,8 @@ function calculateTotal() {
 }
 
 </script>
+
+</div>
 
 </body>
 </html>

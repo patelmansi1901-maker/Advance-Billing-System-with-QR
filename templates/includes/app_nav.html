@@ -1,0 +1,73 @@
+{% comment %}
+    Shared top navigation for every logged-in page.
+    Usage: {% include "includes/app_nav.html" %} right after <body class="app-page">.
+    Admins and distributors see different links, so distributor pages
+    never show links into the admin area.
+{% endcomment %}
+{% if request.user.is_authenticated %}
+{% with current=request.resolver_match.url_name %}
+<header class="app-nav">
+    <div class="app-nav-inner">
+
+        {% if request.user.is_staff %}
+            <a class="app-brand" href="{% url 'admin_dashboard' %}">
+        {% else %}
+            <a class="app-brand" href="{% url 'distributor_dashboard' %}">
+        {% endif %}
+            <span class="app-brand-mark">QR</span>
+            <span>BillFlow</span>
+        </a>
+
+        <nav class="app-links" aria-label="Main navigation">
+            {% if request.user.is_staff %}
+                <a href="{% url 'admin_dashboard' %}"
+                   class="{% if current == 'admin_dashboard' %}active{% endif %}">Dashboard</a>
+            {% else %}
+                <a href="{% url 'distributor_dashboard' %}"
+                   class="{% if current == 'distributor_dashboard' %}active{% endif %}">Dashboard</a>
+            {% endif %}
+
+            <a href="{% url 'customer_list' %}"
+               class="{% if current == 'customer_list' or current == 'customer_add' or current == 'customer_edit' or current == 'distributor_customer_register_page' %}active{% endif %}">Customers</a>
+
+            <a href="{% url 'product_list' %}"
+               class="{% if current == 'product_list' or current == 'add_product' or current == 'product_add' or current == 'product_edit' %}active{% endif %}">Products</a>
+
+            <a href="{% url 'invoice_list' %}"
+               class="{% if current == 'invoice_list' or current == 'invoice_details' or current == 'invoice_preview' %}active{% endif %}">Invoices</a>
+
+            {% if not request.user.is_staff %}
+                <a href="{% url 'invoice_create' %}"
+                   class="{% if current == 'invoice_create' or current == 'invoice_add' %}active{% endif %}">New Invoice</a>
+            {% endif %}
+
+            <a href="{% url 'decode_qr_invoice' %}"
+               class="{% if current == 'decode_qr_invoice' %}active{% endif %}">Scan QR</a>
+
+            {% if request.user.is_staff %}
+                <a href="{% url 'admin_reports' %}"
+                   class="{% if current == 'admin_reports' %}active{% endif %}">Reports</a>
+                <a href="{% url 'admin_register_page' %}"
+                   class="{% if current == 'admin_register_page' %}active{% endif %}">Add Admin</a>
+            {% else %}
+                <a href="{% url 'distributor_profile' %}"
+                   class="{% if current == 'distributor_profile' or current == 'update_distributor_profile' %}active{% endif %}">My Profile</a>
+            {% endif %}
+        </nav>
+
+        <div class="app-user">
+            <span class="app-avatar">{{ request.user.first_name|default:request.user.username|first|upper }}</span>
+            <span class="app-user-text">
+                <span class="app-user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                <span class="app-user-role">{% if request.user.is_staff %}Administrator{% else %}Distributor{% endif %}</span>
+            </span>
+            <form class="app-logout" method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit">Logout</button>
+            </form>
+        </div>
+
+    </div>
+</header>
+{% endwith %}
+{% endif %}

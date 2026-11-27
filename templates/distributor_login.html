@@ -1,27 +1,25 @@
-
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Distributor Login | Advanced Billing System with QR</title>
+    <title>Distributor Login | BillFlow</title>
 
-    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}?v=2">
 </head>
 
 <body>
 
 <div class="login-wrapper">
 
-    <div class="login-card">
+    <main class="login-card">
 
-        <div class="brand">
+        <a class="brand" href="{% url 'home' %}">
             <div class="brand-logo">QR</div>
-            <div class="brand-name">Advanced Billing</div>
-        </div>
+            <div class="brand-name">BillFlow</div>
+        </a>
 
         <div class="login-icon">⇄</div>
 
@@ -35,7 +33,7 @@
 
         {% if messages %}
             {% for message in messages %}
-                <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-error{% endif %}">
+                <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-error{% endif %}" role="alert">
                     {{ message }}
                 </div>
             {% endfor %}
@@ -45,16 +43,17 @@
             {% csrf_token %}
 
             <div class="form-group">
-                <label for="username">Username</label>
+                <label for="username">Email or Username</label>
 
                 <input
                     type="text"
                     id="username"
                     name="username"
                     class="form-control"
-                    placeholder="Enter distributor username"
+                    placeholder="Enter your email or username"
                     autocomplete="username"
                     required
+                    autofocus
                 >
             </div>
 
@@ -72,13 +71,8 @@
                         required
                     >
 
-                    <button
-                        type="button"
-                        class="toggle-password"
-                        onclick="togglePassword('password', this)"
-                    >
-                        Show
-                    </button>
+                    <button type="button" class="toggle-password" data-target="password"
+                            aria-label="Show password">Show</button>
                 </div>
             </div>
 
@@ -90,44 +84,30 @@
 
         <div class="login-links">
 
-            <p>
-                System administrator?
-                <a href="/admin-login/">Admin Login</a>
+            <p class="register-cta">
+                New distributor?
+                <a href="{% url 'distributor_register' %}">Create an account</a>
             </p>
 
             <p>
                 Forgot your password?
-                <a href="/forgot-password/">Reset here</a>
+                <a href="{% url 'forgot_password' %}">Reset here</a>
             </p>
 
             <p>
-                <a href="/">← Back to Home</a>
+                <a href="{% url 'home' %}">← Back to Home</a>
             </p>
 
         </div>
 
         <div class="login-footer">
-            Advanced Billing System with QR
+            BillFlow · Advanced Billing System with QR
         </div>
 
-    </div>
+    </main>
 
 </div>
 
-<script>
-function togglePassword(inputId, button) {
-
-    const passwordInput = document.getElementById(inputId);
-
-    if (passwordInput.type === "password") {
-        passwordInput.type = "text";
-        button.textContent = "Hide";
-    } else {
-        passwordInput.type = "password";
-        button.textContent = "Show";
-    }
-}
-</script>
-
+<script src="{% static 'js/login.js' %}?v=2"></script>
 </body>
 </html>

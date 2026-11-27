@@ -1,69 +1,89 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Verify Admin OTP</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP | BillFlow</title>
+
+    <link rel="stylesheet" href="{% static 'css/login.css' %}?v=2">
+
     <style>
-        body {
-            font-family: Arial;
-            background: #f2f5fa;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+        .otp-input {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 10px;
         }
-
-        .container {
-            background: white;
-            width: 350px;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px #ccc;
-        }
-
-        input, button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 15px;
-            box-sizing: border-box;
-        }
-
-        button {
-            background: #1769aa;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        h2 { text-align: center; }
     </style>
 </head>
+
 <body>
 
-<div class="container">
+<div class="login-wrapper">
 
-    <h2>Verify OTP</h2>
+    <main class="login-card">
 
-    {% for message in messages %}
-        <p>{{ message }}</p>
-    {% endfor %}
+        <div class="brand">
+            <div class="brand-logo">QR</div>
+            <div class="brand-name">BillFlow</div>
+        </div>
 
-    <p>Enter the 6-digit OTP sent to your registered email.</p>
+        <div class="login-icon">✉</div>
 
-    <form method="POST">
-        {% csrf_token %}
+        <div class="portal-label">Password Recovery</div>
 
-        <input
-            type="text"
-            name="otp"
-            placeholder="Enter 6-digit OTP"
-            maxlength="6"
-            pattern="[0-9]{6}"
-            inputmode="numeric"
-            required
-        >
+        <h1 class="login-title">Verify OTP</h1>
 
-        <button type="submit">Verify OTP</button>
-    </form>
+        <p class="login-subtitle">
+            Enter the 6-digit OTP sent to your registered email.
+            It is valid for 10 minutes.
+        </p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-error{% endif %}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="otp">One-Time Password</label>
+
+                <input
+                    type="text"
+                    id="otp"
+                    name="otp"
+                    class="form-control otp-input"
+                    placeholder="••••••"
+                    maxlength="6"
+                    pattern="[0-9]{6}"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    title="Enter the 6-digit OTP."
+                    required
+                    autofocus
+                >
+            </div>
+
+            <button type="submit" class="login-button">Verify OTP →</button>
+        </form>
+
+        <div class="login-links">
+            <p>
+                Didn't get the code?
+                <a href="{% url 'admin_forgot_password' %}">Request a new OTP</a>
+            </p>
+            <p>
+                <a href="{% url 'admin_login' %}">← Back to Admin Login</a>
+            </p>
+        </div>
+
+    </main>
 
 </div>
 

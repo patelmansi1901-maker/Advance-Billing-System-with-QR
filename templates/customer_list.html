@@ -1,3 +1,4 @@
+{% load static %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -46,7 +47,7 @@
         .btn {
             display: inline-block;
             padding: 12px 18px;
-            background: #4f46e5;
+            background: #2468e8;
             color: white;
             text-decoration: none;
             border: none;
@@ -56,7 +57,7 @@
         }
 
         .btn:hover {
-            background: #3730a3;
+            background: #1453d6;
         }
 
         .stats {
@@ -75,7 +76,7 @@
 
         .stats strong {
             font-size: 30px;
-            color: #4f46e5;
+            color: #2468e8;
         }
 
         .table-card {
@@ -102,12 +103,12 @@
         }
 
         .search-form input:focus {
-            border-color: #4f46e5;
+            border-color: #2468e8;
         }
 
         .clear-link {
             align-self: center;
-            color: #4f46e5;
+            color: #2468e8;
             text-decoration: none;
             white-space: nowrap;
         }
@@ -125,7 +126,7 @@
 
         th {
             background: #eef2ff;
-            color: #3730a3;
+            color: #1453d6;
             text-align: left;
             padding: 15px 12px;
             font-size: 13px;
@@ -155,7 +156,7 @@
         .back-link {
             display: inline-block;
             margin-top: 22px;
-            color: #4f46e5;
+            color: #2468e8;
             text-decoration: none;
         }
 
@@ -181,26 +182,43 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body>
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
     <div class="container">
 
         <header class="header">
             <div>
-                <h1>Customer Management</h1>
+                <h1>Customers</h1>
                 <p class="subtitle">
-                    View and search your BillFlow customers.
+                    {% if request.user.is_staff %}
+                        View, search and manage every BillFlow customer.
+                    {% else %}
+                        View, search and manage the customers you have added.
+                    {% endif %}
                 </p>
             </div>
 
-            <a href="{% url 'customer_add' %}" class="btn">
-                + Add Customer
-            </a>
+            {% if not request.user.is_staff %}
+                <a href="{% url 'customer_add' %}" class="btn">
+                    + Add Customer
+                </a>
+            {% endif %}
         </header>
 
+        {% if messages %}
+            {% for message in messages %}
+                <div class="bf-alert {{ message.tags }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
         <section class="stats">
-            <span>Customers Found</span>
+            <span>{% if search_query %}Customers found{% else %}Total customers{% endif %}</span>
             <strong>{{ total_customers }}</strong>
         </section>
 
@@ -208,7 +226,8 @@
 
             <form method="GET"
                   action="{% url 'customer_list' %}"
-                  class="search-form">
+                  class="search-form"
+                  role="search">
 
                 <input
                     type="search"
@@ -221,15 +240,11 @@
                 <button type="submit" class="btn">
                     Search
                 </button>
-                
-                <a href="{% url 'customer_list' %}">
-                    View All Customers
-                </a>
 
                 {% if search_query %}
                     <a href="{% url 'customer_list' %}"
                        class="clear-link">
-                        Clear
+                        Clear search
                     </a>
                 {% endif %}
             </form>
@@ -244,6 +259,7 @@
                             <th>Phone</th>
                             <th>City</th>
                             <th>GST Number</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
 
@@ -271,16 +287,30 @@
                                 <td>
                                     {{ customer.gst_number|default:"—" }}
                                 </td>
+
+                                <td>
+                                    <div class="bf-actions">
+                                        <a href="{% url 'customer_edit' customer.id %}"
+                                           class="bf-btn bf-btn-light bf-btn-sm">
+                                            Edit
+                                        </a>
+
+                                        <form method="post"
+                                              action="{% url 'customer_delete' customer.id %}"
+                                              onsubmit="return confirm('Delete {{ customer.name|escapejs }}? Their invoices will also be deleted. This cannot be undone.');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="bf-btn bf-btn-danger bf-btn-sm">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
                             </tr>
-                            <td>
-                                <a href="{% url 'customer_edit' customer.id %}">
-                                    Edit
-                                </a>
-                            </td>
 
                         {% empty %}
                             <tr>
-                                <td colspan="6" class="empty">
+                                <td colspan="7" class="empty">
                                     {% if search_query %}
                                         No customers found for
                                         "{{ search_query }}".
@@ -297,10 +327,8 @@
             </div>
         </section>
 
-        <a href="{% url 'home' %}" class="back-link">
-            ← Back to Home
-        </a>
-
     </div>
+</div>
+
 </body>
 </html>

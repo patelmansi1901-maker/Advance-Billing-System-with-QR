@@ -5,11 +5,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Reports | Advanced Billing System</title>
-    <link rel="stylesheet" href="{% static 'css/reports.css' %}">
+    <title>Admin Reports | BillFlow</title>
+    <link rel="stylesheet" href="{% static 'css/reports.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
-<body>
-
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 <div class="reports-page">
 
     <header class="reports-header">
@@ -27,7 +29,7 @@
     <section class="summary-grid">
 
         <div class="summary-card">
-            <h3>Total Sales</h3>
+            <h3>{% if report_generated %}Sales in Range{% else %}Total Sales{% endif %}</h3>
             <p class="summary-value">₹{{ total_sales|floatformat:2 }}</p>
         </div>
 
@@ -137,47 +139,17 @@
     </div>
 </section>
 
-<!-- Display Report Results -->
-{% if request.GET.generate == '1' and not errors %}
-
-    <h3>Report Results</h3>
-
-    <p>Total Invoices: {{ total_invoices }}</p>
-
-    {% if invoices %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Invoice Number</th>
-                    <th>Customer</th>
-                    <th>Invoice Date</th>
-                    <th>Total Amount</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                {% for invoice in invoices %}
-                    <tr>
-                        <td>{{ invoice.invoice_number }}</td>
-                        <td>{{ invoice.customer.name }}</td>
-                        <td>{{ invoice.invoice_date|date:"d-m-Y" }}</td>
-                        <td>{{ invoice.grand_total }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No invoices found for the selected date range.</p>
-    {% endif %}
-
-{% endif %}
-
-    </form>
-</section>
-
     <!-- Invoice report -->
     <section class="report-section">
         <h2>Invoice Report</h2>
+        <p class="report-note">
+            {% if report_generated %}
+                Showing {{ total_invoices }} invoice{{ total_invoices|pluralize }}
+                from {{ start_date }} to {{ end_date }}.
+            {% else %}
+                Showing all invoices. Choose a date range above to filter.
+            {% endif %}
+        </p>
 
         <div class="table-container">
             <table>
@@ -342,6 +314,8 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
+
+</div>
 
 </body>
 </html>

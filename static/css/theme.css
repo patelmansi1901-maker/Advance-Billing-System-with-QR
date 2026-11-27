@@ -1,0 +1,496 @@
+/* ==========================================================
+   BillFlow shared theme for logged-in pages
+   ----------------------------------------------------------
+   Load this file LAST in <head> and add class="app-page" to
+   <body>. It gives every inner page the same font, colours,
+   form fields, tables and top navigation as the dashboards.
+   ========================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --bf-navy: #10264a;
+    --bf-navy-dark: #0b1d3a;
+    --bf-blue: #2468e8;
+    --bf-blue-dark: #1453d6;
+    --bf-blue-soft: #e7efff;
+    --bf-bg: #f3f7fc;
+    --bf-surface: #ffffff;
+    --bf-ink: #172b4d;
+    --bf-muted: #6b7a93;
+    --bf-line: #e1e8f2;
+    --bf-success: #16a779;
+    --bf-danger: #d64550;
+    --bf-radius: 12px;
+    --bf-shadow: 0 4px 18px rgba(25, 61, 107, 0.06);
+    --bf-font: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+/* ---------- Page base ---------- */
+
+body.app-page {
+    display: block;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    background: var(--bf-bg);
+    color: var(--bf-ink);
+    font-family: var(--bf-font);
+    -webkit-font-smoothing: antialiased;
+}
+
+body.app-page *,
+body.app-page *::before,
+body.app-page *::after {
+    box-sizing: border-box;
+}
+
+body.app-page :is(input, select, textarea, button) {
+    font-family: inherit;
+}
+
+.app-content {
+    width: 100%;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 28px 24px 40px;
+}
+
+/* Centre each page's own container inside the content area. */
+.app-content > :where(div, main, section, form, header, article) {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* :where() keeps these weak so a page's own header styles still win.
+   Colour is left to each page so headings on dark banners stay white. */
+:where(body.app-page) :is(h1, h2, h3) {
+    letter-spacing: -0.4px;
+}
+
+:where(body.app-page) h1 {
+    font-weight: 800;
+}
+
+/* ---------- Form fields ---------- */
+
+body.app-page :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="hidden"]),
+    select,
+    textarea
+) {
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid #d3dce9;
+    border-radius: 10px;
+    background-color: #ffffff;
+    color: var(--bf-ink);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.app-page textarea {
+    min-height: 90px;
+    line-height: 1.5;
+}
+
+body.app-page :is(input, select, textarea)::placeholder {
+    color: #9aa7bb;
+}
+
+body.app-page :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    select,
+    textarea
+):focus {
+    border-color: var(--bf-blue);
+    box-shadow: 0 0 0 3px rgba(36, 104, 232, 0.15);
+}
+
+body.app-page :is(input, select, textarea)[readonly] {
+    background-color: #f5f8fc;
+}
+
+body.app-page input[type="checkbox"],
+body.app-page input[type="radio"] {
+    accent-color: var(--bf-blue);
+}
+
+:where(body.app-page) label {
+    color: #33476a;
+}
+
+/* ---------- Tables ---------- */
+
+body.app-page table {
+    border-collapse: collapse;
+}
+
+body.app-page th {
+    background: #f4f8fd;
+    color: #5b6b86;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--bf-line);
+}
+
+body.app-page td {
+    border-bottom: 1px solid #edf1f7;
+    color: #3c4f6e;
+}
+
+body.app-page tbody tr:hover td {
+    background: #f9fbff;
+}
+
+/* ---------- Shared buttons and helpers ---------- */
+
+.bf-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: var(--bf-blue);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.bf-btn:hover {
+    background: var(--bf-blue-dark);
+}
+
+.bf-btn-light {
+    background: var(--bf-blue-soft);
+    color: #2459c4;
+}
+
+.bf-btn-light:hover {
+    background: #2459c4;
+    color: #ffffff;
+}
+
+.bf-btn-danger {
+    background: #fde8ea;
+    color: #b42335;
+}
+
+.bf-btn-danger:hover {
+    background: #b42335;
+    color: #ffffff;
+}
+
+.bf-btn-sm {
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+.bf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.bf-actions form {
+    margin: 0;
+}
+
+/* ---------- Cards, titles and alerts ---------- */
+
+.bf-card {
+    padding: 30px;
+    border: 1px solid var(--bf-line);
+    border-radius: 16px;
+    background: var(--bf-surface);
+    box-shadow: var(--bf-shadow);
+}
+
+.bf-eyebrow {
+    margin: 0 0 8px;
+    color: #4377c4;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.bf-title {
+    margin: 0 0 6px;
+    font-size: 26px;
+    line-height: 1.25;
+}
+
+.bf-subtitle {
+    margin: 0 0 22px;
+    color: var(--bf-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.bf-page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.bf-page-header .bf-subtitle {
+    margin-bottom: 0;
+}
+
+body.app-page :is(.success-alert, .error-alert, .bf-alert) {
+    padding: 12px 14px;
+    margin: 0 0 16px;
+    border: 1px solid #c8eedc;
+    border-radius: 10px;
+    background: #e9f9f1;
+    color: #14724b;
+    font-size: 14px;
+}
+
+body.app-page :is(.error-alert, .bf-alert.error) {
+    border-color: #f6c9cd;
+    background: #fff0f1;
+    color: #b4323f;
+}
+
+@media (max-width: 600px) {
+    .bf-card {
+        padding: 22px 18px;
+    }
+
+    .bf-title {
+        font-size: 22px;
+    }
+}
+
+/* ---------- Top navigation ---------- */
+
+.app-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.96);
+    border-bottom: 1px solid var(--bf-line);
+    backdrop-filter: saturate(180%) blur(8px);
+    font-family: var(--bf-font);
+}
+
+.app-nav-inner {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    max-width: 1320px;
+    min-height: 64px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.app-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    color: var(--bf-ink);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    text-decoration: none;
+}
+
+.app-brand-mark {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, #2e82ff, var(--bf-blue-dark));
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    box-shadow: 0 6px 16px rgba(20, 83, 214, 0.25);
+}
+
+.app-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.app-links::-webkit-scrollbar {
+    display: none;
+}
+
+.app-links a {
+    padding: 8px 12px;
+    border-radius: 9px;
+    color: #4f6282;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.app-links a:hover {
+    background: #f1f5fb;
+    color: var(--bf-ink);
+}
+
+.app-links a.active {
+    background: var(--bf-blue-soft);
+    color: var(--bf-blue-dark);
+}
+
+.app-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.app-avatar {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #dceaff;
+    color: #1c5ec8;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.app-user-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.app-user-name {
+    max-width: 150px;
+    overflow: hidden;
+    color: var(--bf-ink);
+    font-size: 13px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-user-role {
+    color: var(--bf-muted);
+    font-size: 11px;
+}
+
+.app-logout {
+    margin: 0;
+}
+
+.app-logout button {
+    padding: 8px 12px;
+    border: 1px solid var(--bf-line);
+    border-radius: 9px;
+    background: #ffffff;
+    color: #435675;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.app-logout button:hover {
+    border-color: #f0a7a7;
+    color: #c94c59;
+}
+
+/* ---------- Flash messages ---------- */
+
+.app-messages {
+    display: grid;
+    gap: 8px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 18px 24px 0;
+}
+
+.app-message {
+    padding: 12px 14px;
+    border: 1px solid #c8eedc;
+    border-radius: 10px;
+    background: #e9f9f1;
+    color: #14724b;
+    font-size: 14px;
+}
+
+.app-message.error {
+    border-color: #f6c9cd;
+    background: #fff0f1;
+    color: #b4323f;
+}
+
+.app-message.warning {
+    border-color: #f5dfb5;
+    background: #fff7e8;
+    color: #94600d;
+}
+
+.app-message.info {
+    border-color: #cfdffb;
+    background: #eef4ff;
+    color: #2453a8;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+    .app-nav-inner {
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        padding: 10px 16px;
+    }
+
+    .app-links {
+        order: 3;
+        flex-basis: 100%;
+        padding-bottom: 2px;
+    }
+
+    .app-user {
+        margin-left: auto;
+    }
+
+    .app-user-text {
+        display: none;
+    }
+
+    .app-content {
+        padding: 20px 14px 32px;
+    }
+}
+
+@media print {
+    .app-nav,
+    .app-messages {
+        display: none !important;
+    }
+
+    .app-content {
+        max-width: none;
+        padding: 0;
+    }
+}

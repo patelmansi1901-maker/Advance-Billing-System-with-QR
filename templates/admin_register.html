@@ -1,10 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Admin Registration | Advanced Billing System</title>
+    <title>Admin Registration | BillFlow</title>
 
     <style>
         * {
@@ -138,10 +139,12 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body>
-
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 <div class="registration-container">
 
     <div class="header">
@@ -355,6 +358,8 @@
 
     });
 </script>
+
+</div>
 
 </body>
 </html>

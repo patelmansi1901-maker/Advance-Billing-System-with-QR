@@ -1,3 +1,4 @@
+{% load static %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -5,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Preview Invoice</title>
+    <title>Preview Invoice | BillFlow</title>
 
     <style>
         * {
@@ -132,6 +133,22 @@
             color: white;
         }
 
+        .download-btn {
+    display: inline-block;
+    background: #12304a;
+    color: white;
+    padding: 11px 22px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.download-btn:hover {
+    background: #159a9c;
+    color: white;
+}
+
         @media print {
             body {
                 background: white;
@@ -171,16 +188,18 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body>
-
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 <div class="invoice-container">
 
     <div class="header">
         <div>
             <h1>INVOICE</h1>
-            <p>Advance Billing System with QR</p>
+            <p>Advanced Billing System with QR</p>
         </div>
 
         <div>
@@ -295,6 +314,8 @@
         </button>
 
     </div>
+
+</div>
 
 </div>
 

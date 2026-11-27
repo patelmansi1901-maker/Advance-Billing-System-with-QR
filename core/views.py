@@ -39,6 +39,7 @@ from django.db.models import Count, Prefetch
 from django.conf import settings
 from django.contrib.staticfiles import finders
 from io import BytesIO
+from urllib.parse import urlparse
 from django.http import HttpResponse, HttpResponseForbidden
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
@@ -92,7 +93,16 @@ from django.shortcuts import render, redirect
 from .models import DistributorProfile
 from decimal import Decimal,InvalidOperation
 from .forms import InvoiceForm, InvoiceItemFormSet
+from django.utils.http import url_has_allowed_host_and_scheme
 from core.decorators import admin_required, distributor_required
+from .validators import (
+    normalize_full_name,
+    normalize_mobile,
+    validate_confirm_password,
+    validate_full_name,
+    validate_mobile,
+    validate_new_password,
+)
 
 User = get_user_model()
 
@@ -306,7 +316,16 @@ def forgot_password(request):
     return render(
         request,
         template_name,
-        {"notice": notice, "error": error},
+        {
+            "notice": notice,
+            "error": error,
+            # Tells the shared templates to use this step-by-step
+            # flow instead of the separate admin recovery pages.
+            "flow": "account",
+            "otp_verified": bool(
+                request.session.get("password_reset_verified")
+            ),
+        },
     )
 
 
@@ -465,7 +484,24 @@ def admin_dashboard(request):
         )
         return redirect('distributor_login')
 
-    return render(request, 'admin_dashboard.html')
+    invoices = Invoice.objects.all()
+
+    context = {
+        "total_customers": Customer.objects.count(),
+        "total_distributors": get_user_model().objects.filter(
+            groups__name="Distributor",
+            is_staff=False,
+        ).distinct().count(),
+        "total_products": Product.objects.count(),
+        "total_invoices": invoices.count(),
+        "total_revenue": (
+            invoices.aggregate(total=Sum("grand_total"))["total"]
+            or Decimal("0.00")
+        ),
+        "recent_customers": Customer.objects.order_by("-created_at")[:5],
+    }
+
+    return render(request, 'admin_dashboard.html', context)
 
 # ---------------- DISTRIBUTOR DASHBOARD ----------------
 
@@ -485,7 +521,21 @@ def distributor_dashboard(request):
         )
         return redirect('admin_login')
 
-    return render(request, 'distributor_dashboard.html')
+    my_customers = Customer.objects.filter(distributor=request.user)
+    my_invoices = Invoice.objects.filter(distributor=request.user)
+
+    context = {
+        "my_customers": my_customers.count(),
+        "total_products": Product.objects.count(),
+        "my_invoices": my_invoices.count(),
+        "my_sales": (
+            my_invoices.aggregate(total=Sum("grand_total"))["total"]
+            or Decimal("0.00")
+        ),
+        "recent_customers": my_customers.order_by("-created_at")[:5],
+    }
+
+    return render(request, 'distributor_dashboard.html', context)
 
 @login_required(login_url="distributor_login")
 def update_distributor_profile(request):
@@ -510,9 +560,9 @@ def update_distributor_profile(request):
     }
 
     if request.method == "POST":
-        name = request.POST.get("name", "").strip()
+        name = normalize_full_name(request.POST.get("name", ""))
         email = request.POST.get("email", "").strip().lower()
-        phone = request.POST.get("phone", "").strip()
+        phone = normalize_mobile(request.POST.get("phone", ""))
 
         values = {
             "name": name,
@@ -522,13 +572,10 @@ def update_distributor_profile(request):
 
         User = request.user.__class__
 
-        # Validate name
-        if not name:
-            errors["name"] = "Full name is required."
-        elif len(name) < 2 or len(name) > 100:
-            errors["name"] = "Name must be between 2 and 100 characters."
-        elif not re.fullmatch(r"[A-Za-z][A-Za-z '\-]*", name):
-            errors["name"] = "Enter a valid name using letters, spaces, apostrophes or hyphens."
+        # Validate full name (same rules as registration)
+        name_error = validate_full_name(name)
+        if name_error:
+            errors["name"] = name_error
 
         # Validate email
         if not email:
@@ -545,13 +592,14 @@ def update_distributor_profile(request):
         ).exclude(pk=request.user.pk).exists():
             errors["email"] = "This email is already in use."
 
-        # Validate phone
-        if not re.fullmatch(r"[0-9]{10}", phone):
-            errors["phone"] = "Phone number must contain exactly 10 digits."
+        # Validate mobile number (same rules as registration)
+        phone_error = validate_mobile(phone)
+        if phone_error:
+            errors["phone"] = phone_error
         elif DistributorProfile.objects.filter(
             phone=phone
         ).exclude(pk=profile.pk).exists():
-            errors["phone"] = "This phone number is already in use."
+            errors["phone"] = "This mobile number is already in use."
 
         # Save only if all fields are valid
         if not errors:
@@ -589,9 +637,9 @@ def distributor_register(request):
     }
 
     if request.method == "POST":
-        name = request.POST.get("name", "").strip()
+        name = normalize_full_name(request.POST.get("name", ""))
         email = request.POST.get("email", "").strip().lower()
-        phone = request.POST.get("phone", "").strip()
+        phone = normalize_mobile(request.POST.get("phone", ""))
         password = request.POST.get("password", "")
         confirm_password = request.POST.get("confirm_password", "")
 
@@ -601,51 +649,47 @@ def distributor_register(request):
             "phone": phone,
         }
 
-        # Validate name
-        if not name:
-            errors["name"] = "Name is required."
-        elif len(name) < 2 or len(name) > 100:
-            errors["name"] = "Name must be between 2 and 100 characters."
-        elif not re.fullmatch(r"[A-Za-z][A-Za-z '\-]*", name):
-            errors["name"] = "Enter a valid name."
+        User = get_user_model()
+
+        # Validate full name
+        name_error = validate_full_name(name)
+        if name_error:
+            errors["name"] = name_error
 
         # Validate email
         if not email:
-            errors["email"] = "Email is required."
+            errors["email"] = "Email address is required."
+        elif len(email) > 254:
+            errors["email"] = "Email address is too long."
         else:
             try:
                 validate_email(email)
             except ValidationError:
                 errors["email"] = "Enter a valid email address."
+            else:
+                if User.objects.filter(email__iexact=email).exists():
+                    errors["email"] = "This email is already registered."
 
-        # Validate phone
-        if not re.fullmatch(r"[0-9]{10}", phone):
-            errors["phone"] = "Phone number must contain exactly 10 digits."
+        # Validate mobile number
+        phone_error = validate_mobile(phone)
+        if phone_error:
+            errors["phone"] = phone_error
         elif DistributorProfile.objects.filter(phone=phone).exists():
-            errors["phone"] = "This phone number is already registered."
+            errors["phone"] = "This mobile number is already registered."
 
-        User = get_user_model()
+        # Validate password and confirmation
+        password_error = validate_new_password(
+            password,
+            name=name,
+            email=email,
+            phone=phone,
+        )
+        if password_error:
+            errors["password"] = password_error
 
-        # Check duplicate email
-        if email and User.objects.filter(email__iexact=email).exists():
-            errors["email"] = "This email is already registered."
-
-        # Validate password
-        # Validate password
-        if not password:
-            errors["password"] = "Password is required."
-        elif len(password) < 8:
-            errors["password"] = "Password must contain at least 8 characters."
-        elif len(password) > 128:
-            errors["password"] = "Password cannot exceed 128 characters."
-        else:
-            try:
-               validate_password(password)
-            except ValidationError as exc:
-                errors["password"] = " ".join(exc.messages)
-        
-        if password != confirm_password:
-            errors["confirm_password"] = "Passwords do not match."
+        confirm_error = validate_confirm_password(password, confirm_password)
+        if confirm_error:
+            errors["confirm_password"] = confirm_error
 
         # Save only if all fields are valid
         if not errors:
@@ -833,12 +877,16 @@ def customer_add(request):
     )
 
 
+@login_required(login_url="distributor_login")
 def customer_list(request):
     # Get the search text from the URL
     search_query = request.GET.get("q", "").strip()
 
-    # Fetch all customers from the database
+    # Admin sees every customer; a distributor sees only their own.
     customers = Customer.objects.all()
+
+    if not request.user.is_staff:
+        customers = customers.filter(distributor=request.user)
 
     # Filter customers if a search term is entered
     if search_query:
@@ -943,6 +991,16 @@ def customer_delete(request, customer_id):
         request,
         "Customer deleted successfully."
     )
+
+    # Return to the page the delete button was on (customer list or
+    # dashboard), but only if it is a local URL.
+    next_url = request.POST.get("next", "")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
 
     return redirect("admin_dashboard" if request.user.is_staff else "customer_list")
 
@@ -1446,12 +1504,53 @@ def invoice_list(request):
         "invoices": invoices
     })
 
+def build_invoice_qr_data(invoice):
+
+    import qrcode
+    import base64
+    from io import BytesIO
+
+    invoice_number = invoice.invoice_number
+    customer_name = invoice.customer.name
+    total_amount = invoice.grand_total
+    invoice_date = invoice.invoice_date
+
+    qr_content = (
+        f"Advance Billing System with QR\n"
+        f"Invoice ID: {invoice.id}\n"
+        f"Invoice Number: {invoice_number}\n"
+        f"Customer: {customer_name}\n"
+        f"Total Amount: Rs. {total_amount}\n"
+        f"Invoice Date: {invoice_date}"
+    )
+
+    qr = qrcode.QRCode(
+        version=None,
+        box_size=8,
+        border=4
+    )
+
+    qr.add_data(qr_content)
+    qr.make(fit=True)
+
+    image = qr.make_image(
+        fill_color="black",
+        back_color="white"
+    )
+
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+
+    encoded_image = base64.b64encode(
+        buffer.getvalue()
+    ).decode("utf-8")
+
+    return "data:image/png;base64," + encoded_image
 
 
 @login_required
 def invoice_pdf(request, invoice_id):
 
-    # Get invoice from database
     invoice = get_object_or_404(
         Invoice.objects.select_related(
             'customer',
@@ -1462,109 +1561,74 @@ def invoice_pdf(request, invoice_id):
         id=invoice_id
     )
 
-    # Allow admin and invoice owner only
-    if not request.user.is_staff:
-        if invoice.distributor_id != request.user.id:
-            raise PermissionDenied
+    # Generate QR code using the helper function
+    qr_code_data = build_invoice_qr_data(invoice)
 
-    # Get invoice items
-    invoice_items = invoice.items.all()
+    items = invoice.items.all()
 
-    # Find invoice date safely
-    invoice_date = None
-
-    for field_name in [
-        'invoice_date',
-        'date',
-        'created_on',
-        'created',
-        'timestamp'
-    ]:
-        if hasattr(invoice, field_name):
-            invoice_date = getattr(invoice, field_name)
-
-            if invoice_date:
-                break
-
-    invoice_date_text = (
-        str(invoice_date) if invoice_date
-        else "Date not available"
-    )
-
-    # Prepare QR information
-    qr_data = {
-        "invoice_number": invoice.invoice_number,
-        "customer_name": invoice.customer.name,
-        "product_count": invoice_items.count(),
-        "total_amount": str(invoice.grand_total),
-        "date": invoice_date_text
-    }
-
-    # Convert information into JSON
-    qr_text = json.dumps(qr_data)
-
-    # Generate QR code
-    qr = qrcode.QRCode(
-        version=1,
-        box_size=10,
-        border=4
-    )
-
-    qr.add_data(qr_text)
-    qr.make(fit=True)
-
-    qr_image = qr.make_image(
-        fill_color="black",
-        back_color="white"
-    )
-
-    # Convert QR image into Base64
-    buffer = BytesIO()
-    qr_image.save(buffer, format="PNG")
-
-    qr_base64 = base64.b64encode(
-        buffer.getvalue()
-    ).decode("utf-8")
-
-    # Prepare template context
     context = {
         'invoice': invoice,
-        'invoice_items': invoice_items,
-        'qr_code': qr_base64,
-        'invoice_date_text': invoice_date_text,
+        'items': items,
+        'qr_code_data': qr_code_data,
     }
 
-    # Generate HTML from PDF template
-    html = render_to_string(
+    html = render(
+        request,
         'invoice_pdf.html',
         context
-    )
+    ).content.decode('utf-8')
 
-    # Create PDF response
     response = HttpResponse(
         content_type='application/pdf'
     )
 
     response['Content-Disposition'] = (
-        f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
+        f'attachment; filename="{invoice.invoice_number}.pdf"'
     )
 
-    # Convert HTML into PDF
     pdf_status = pisa.CreatePDF(
-        src=html,
-        dest=response,
-        encoding='UTF-8'
+        html,
+        dest=response
     )
 
-    # Handle PDF generation errors
     if pdf_status.err:
-        return HttpResponse(
-            "Error generating invoice PDF. Please check the PDF template.",
-            status=500
-        )
+        return HttpResponse("PDF generation failed.")
 
     return response
 
+def pdf_link_callback(uri, rel):
+
+    # Handle uploaded images and files
+    if uri.startswith(settings.MEDIA_URL):
+
+        path = os.path.join(
+            settings.MEDIA_ROOT,
+            uri.replace(settings.MEDIA_URL, "")
+        )
+
+    # Handle CSS and static images
+    elif uri.startswith(settings.STATIC_URL):
+
+        relative_path = uri.replace(
+            settings.STATIC_URL, ""
+        )
+
+        path = finders.find(relative_path)
+
+    else:
+        return uri
+
+    if not path:
+        raise Exception(
+            "PDF resource not found: " + uri
+        )
+
+    if not os.path.isfile(path):
+        raise Exception(
+            "File does not exist: " + path
+        )
+
+    return path
 
 # 9. Resolve local static and media image paths for xhtml2pdf
 def link_callback(uri, rel):
@@ -2076,18 +2140,41 @@ def admin_reports(request):
                 "Start date cannot be later than end date."
             )
 
-        # Filter invoices only when validation succeeds
+        # Filter invoices only when validation succeeds.
+        # __date__range includes invoices created on the end date itself.
         if not errors:
             filtered_invoices = invoices.filter(
-                invoice_date__range=(start, end)
+                invoice_date__date__range=(start, end)
             ).order_by('-invoice_date')
+
+    report_generated = request.GET.get('generate') == '1' and not errors
+
+    # Show every invoice until a valid date range is chosen.
+    invoice_report = (
+        filtered_invoices if report_generated else invoices
+    ).select_related('customer')
+
+    sales = invoice_report.aggregate(
+        total=Sum('grand_total'),
+        average=Avg('grand_total'),
+    )
+    products = Product.objects.order_by('name')
 
     context = {
         'invoices': filtered_invoices,
+        'invoice_report': invoice_report,
+        'product_report': products,
+        'customer_report': Customer.objects.order_by('name'),
+        'report_generated': report_generated,
         'start_date': start_date,
         'end_date': end_date,
         'errors': errors,
-        'total_invoices': filtered_invoices.count(),
+        'total_invoices': invoice_report.count(),
+        'total_sales': sales['total'] or Decimal('0.00'),
+        'average_invoice': sales['average'] or Decimal('0.00'),
+        'total_customers': Customer.objects.count(),
+        'total_products': products.count(),
+        'total_stock': products.aggregate(total=Sum('stock'))['total'] or 0,
     }
 
     return render(request, 'reports.html', context)

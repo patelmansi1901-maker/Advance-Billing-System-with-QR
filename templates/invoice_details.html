@@ -1,7 +1,8 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Invoice Details</title>
+    <title>Invoice Details | BillFlow</title>
 
     <style>
         body {
@@ -45,10 +46,12 @@
             border-radius: 5px;
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body>
-
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 <div class="container">
 
     <h2>Complete Invoice Details</h2>
@@ -80,6 +83,8 @@
     <a href="{% url 'invoice_list' %}" class="back-button">
         Back to Invoices
     </a>
+
+</div>
 
 </div>
 

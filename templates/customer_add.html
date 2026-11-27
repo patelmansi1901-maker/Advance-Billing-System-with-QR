@@ -6,7 +6,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Customer | BillFlow</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
     <style>
         .customer-page {
@@ -16,10 +15,8 @@
         }
 
         .customer-card {
-            max-width: 760px;
-            margin: 25px auto;
-            padding: 32px;
-            box-sizing: border-box;
+            max-width: 820px;
+            margin: 0 auto;
         }
 
         .customer-grid {
@@ -30,7 +27,8 @@
 
         .customer-field label {
             display: block;
-            margin: 14px 0 7px;
+            margin: 4px 0 7px;
+            font-size: 13px;
             font-weight: 600;
         }
 
@@ -39,20 +37,12 @@
             width: 100%;
             padding: 12px;
             box-sizing: border-box;
-            border: 1px solid #cbd5e1;
-            border-radius: 9px;
             font: inherit;
         }
 
         .customer-field textarea {
             min-height: 90px;
             resize: vertical;
-        }
-
-        .customer-field input:focus,
-        .customer-field textarea:focus {
-            outline: 2px solid #14b8a6;
-            border-color: #14b8a6;
         }
 
         .full-width {
@@ -87,15 +77,15 @@
             margin-top: 24px;
             border: 0;
             border-radius: 9px;
-            background: #0d9488;
+            background: var(--bf-blue);
             color: white;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             cursor: pointer;
         }
 
         .customer-button:hover {
-            background: #0f766e;
+            background: var(--bf-blue-dark);
         }
 
         .customer-footer {
@@ -104,7 +94,7 @@
         }
 
         .customer-footer a {
-            color: #0d9488;
+            color: var(--bf-blue);
             text-decoration: none;
             font-weight: 600;
         }
@@ -123,19 +113,17 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body class="login-page customer-page">
-    <main class="login-card customer-card">
+<body class="app-page customer-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
+<main class="bf-card customer-card">
 
-        <a class="brand" href="/">
-            <span class="brand-icon">QR</span>
-            <span>BillFlow</span>
-        </a>
-
-        <p class="eyebrow">CUSTOMER MANAGEMENT</p>
-        <h1>Add New Customer</h1>
-        <p>Enter the customer's details below.</p>
+        <p class="bf-eyebrow">Customer Management</p>
+        <h1 class="bf-title">Add New Customer</h1>
+        <p class="bf-subtitle">Enter the customer's details below. Fields marked * are required.</p>
 
         {% if messages %}
             {% for message in messages %}
@@ -283,13 +271,6 @@
                     {% if errors.postal_code %}
                         <p class="field-error">{{ errors.postal_code }}</p>
                     {% endif %}
-                    {% if messages %}
-                    {% for message in messages %}
-                    <div class="alert alert-danger">
-                    {{ message }}
-                    </div>
-                    {% endfor %}
-                    {% endif %}
                 </div>
 
             </div>
@@ -300,9 +281,11 @@
         </form>
 
         <div class="customer-footer">
-            <a href="/">← Back to Home</a>
+            <a href="{% url 'customer_list' %}">← Back to Customers</a>
         </div>
 
     </main>
+</div>
+
 </body>
 </html>

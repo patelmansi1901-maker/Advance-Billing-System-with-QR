@@ -1,11 +1,11 @@
-
+// Show / hide password buttons on the sign-in pages.
+// Usage: <button type="button" class="toggle-password" data-target="password">Show</button>
 document.addEventListener("DOMContentLoaded", function () {
-    const buttons = document.querySelectorAll(".toggle-password");
+    const buttons = document.querySelectorAll(".toggle-password[data-target]");
 
     buttons.forEach(function (button) {
         button.addEventListener("click", function () {
-            const inputId = button.dataset.target;
-            const passwordInput = document.getElementById(inputId);
+            const passwordInput = document.getElementById(button.dataset.target);
 
             if (!passwordInput) return;
 
@@ -13,6 +13,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
             passwordInput.type = isHidden ? "text" : "password";
             button.textContent = isHidden ? "Hide" : "Show";
+            button.setAttribute(
+                "aria-label",
+                isHidden ? "Hide password" : "Show password"
+            );
         });
     });
 });

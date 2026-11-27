@@ -1,4 +1,3 @@
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -7,239 +6,195 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distributor Registration | BillFlow</title>
 
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-
-    <style>
-        .register-page {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            box-sizing: border-box;
-        }
-
-        .register-card {
-            width: 100%;
-            max-width: 480px;
-            padding: 32px;
-            box-sizing: border-box;
-        }
-
-        .register-description {
-            line-height: 1.6;
-            color: #64748b;
-            margin-bottom: 24px;
-        }
-
-        .register-card label {
-            display: block;
-            margin: 16px 0 8px;
-            font-weight: 600;
-        }
-
-        .register-card input {
-            display: block;
-            width: 100%;
-            padding: 13px 14px;
-            border: 1px solid #cbd5e1;
-            border-radius: 9px;
-            box-sizing: border-box;
-            font-size: 15px;
-        }
-
-        .register-card input:focus {
-            outline: 2px solid #14b8a6;
-            border-color: #14b8a6;
-        }
-
-        .register-button {
-            width: 100%;
-            margin-top: 24px;
-            padding: 14px;
-            border: none;
-            border-radius: 9px;
-            background: #0d9488;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .register-button:hover {
-            background: #0f766e;
-        }
-
-        .register-message {
-            padding: 12px;
-            margin: 12px 0;
-            border-radius: 8px;
-        }
-
-        .register-footer {
-            text-align: center;
-            margin-top: 22px;
-            line-height: 1.8;
-        }
-
-        .register-footer a {
-            color: #0d9488;
-            font-weight: 600;
-            text-decoration: none;
-        }
-
-        .error {
-        color: #dc2626;
-        font-size: 13px;
-        margin: 6px 0 10px;
-        line-height: 1.4;
-        }
-
-        .register-card input:invalid:focus {
-        border-color: #dc2626;
-        }
-
-        @media (max-width: 480px) {
-            .register-card {
-                padding: 22px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/login.css' %}?v=2">
 </head>
 
-<body class="login-page register-page">
+<body>
+
+<div class="login-wrapper">
 
     <main class="login-card register-card">
 
-        <a class="brand" href="/">
-            <span class="brand-icon">QR</span>
-            <span>BillFlow</span>
+        <a class="brand" href="{% url 'home' %}">
+            <div class="brand-logo">QR</div>
+            <div class="brand-name">BillFlow</div>
         </a>
 
-        <div class="role-icon admin-icon">👤</div>
+        <div class="portal-label">Distributor Account</div>
 
-        <p class="eyebrow">DISTRIBUTOR ACCOUNT</p>
-        <h1>Create Your Account</h1>
+        <h1 class="login-title">Create Your Account</h1>
 
-        <p class="register-description">
-            Register with BillFlow to manage your distributor activities
-            and billing information.
+        <p class="login-subtitle">
+            Register to manage your customers, products and invoices.
         </p>
 
         {% if messages %}
             {% for message in messages %}
-                <div class="register-message {{ message.tags }}" role="alert">
+                <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-error{% endif %}" role="alert">
                     {{ message }}
                 </div>
             {% endfor %}
         {% endif %}
 
-        
+        {% if errors.general %}
+            <div class="alert alert-error" role="alert">{{ errors.general }}</div>
+        {% endif %}
 
-<form method="post" action="{% url 'distributor_register' %}">
-    {% csrf_token %}
+        <form method="post"
+              action="{% url 'distributor_register' %}"
+              data-live-validate>
+            {% csrf_token %}
 
-    <label for="name">Full Name</label>
+            <!-- Full name -->
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    class="form-control{% if errors.name %} is-invalid{% endif %}"
+                    value="{{ values.name|default:'' }}"
+                    placeholder="e.g. Mansi Patel"
+                    required
+                    minlength="3"
+                    maxlength="100"
+                    autocomplete="name"
+                    data-validate="full-name"
+                >
+                <p class="field-hint">First and last name, letters only.</p>
+                <p class="field-error" id="name-error">{{ errors.name|default:'' }}</p>
+            </div>
 
-<input
-    type="text"
-    id="name"
-    name="name"
-    value="{{ values.name|default:'' }}"
-    placeholder="Enter your full name"
-    required
-    minlength="2"
-    maxlength="100"
-    pattern="[A-Za-z][A-Za-z '\-]*"
-    autocomplete="name"
-    title="Use letters, spaces, apostrophes or hyphens."
->
-{% if errors.name %}
-    <p class="error">{{ errors.name }}</p>
-{% endif %}
+            <!-- Email -->
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    class="form-control{% if errors.email %} is-invalid{% endif %}"
+                    value="{{ values.email|default:'' }}"
+                    placeholder="you@example.com"
+                    required
+                    maxlength="254"
+                    autocomplete="email"
+                    data-validate="email"
+                >
+                <p class="field-hint">You will use this email to log in.</p>
+                <p class="field-error" id="email-error">{{ errors.email|default:'' }}</p>
+            </div>
 
-    <label for="email">Email Address</label>
-    <input
-        type="email"
-        id="email"
-        name="email"
-        value="{{ values.email|default:'' }}"
-        required
-        maxlength="254"
-        autocomplete="email"
-    >
-    {% if errors.email %}
-        <p class="error">{{ errors.email }}</p>
-    {% endif %}
+            <!-- Mobile number -->
+            <div class="form-group">
+                <label for="phone">Mobile Number</label>
+                <div class="input-prefix">
+                    <span class="prefix" aria-hidden="true">+91</span>
+                    <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        class="form-control{% if errors.phone %} is-invalid{% endif %}"
+                        value="{{ values.phone|default:'' }}"
+                        placeholder="10-digit mobile number"
+                        required
+                        pattern="[6-9][0-9]{9}"
+                        minlength="10"
+                        maxlength="10"
+                        inputmode="numeric"
+                        autocomplete="tel-national"
+                        title="Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
+                        data-validate="mobile"
+                    >
+                </div>
+                <p class="field-hint">10 digits, starting with 6, 7, 8 or 9.</p>
+                <p class="field-error" id="phone-error">{{ errors.phone|default:'' }}</p>
+            </div>
 
-    <label for="phone">Mobile Number</label>
+            <!-- Password -->
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-wrapper">
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        class="form-control{% if errors.password %} is-invalid{% endif %}"
+                        placeholder="Create a strong password"
+                        required
+                        minlength="8"
+                        maxlength="64"
+                        autocomplete="new-password"
+                        data-validate="password"
+                    >
+                    <button type="button" class="toggle-password" data-target="password"
+                            aria-label="Show password">Show</button>
+                </div>
 
-<input
-    type="tel"
-    id="phone"
-    name="phone"
-    value="{{ values.phone|default:'' }}"
-    placeholder="Enter 10-digit mobile number"
-    required
-    pattern="[0-9]{10}"
-    minlength="10"
-    maxlength="10"
-    inputmode="numeric"
-    autocomplete="tel"
-    title="Enter exactly 10 digits."
->
-{% if errors.phone %}
-    <p class="error">{{ errors.phone }}</p>
-{% endif %}
+                <div class="strength" aria-hidden="true">
+                    <div class="strength-track">
+                        <span class="strength-bar" data-strength-bar="password"></span>
+                    </div>
+                    <span class="strength-label" data-strength-label="password"></span>
+                </div>
 
-    <label for="password">Password</label>
+                <ul class="password-rules" data-password-rules="password">
+                    <li data-rule="length">At least 8 characters</li>
+                    <li data-rule="upper">One uppercase letter (A–Z)</li>
+                    <li data-rule="lower">One lowercase letter (a–z)</li>
+                    <li data-rule="number">One number (0–9)</li>
+                    <li data-rule="special">One special character (!@#$…)</li>
+                </ul>
 
-<input
-    type="password"
-    id="password"
-    name="password"
-    placeholder="Create a strong password"
-    required
-    minlength="8"
-    maxlength="128"
-    autocomplete="new-password"
->
-{% if errors.password %}
-    <p class="error">{{ errors.password }}</p>
-{% endif %}
+                <p class="field-error" id="password-error">{{ errors.password|default:'' }}</p>
+            </div>
 
-<label for="confirm_password">Confirm Password</label>
+            <!-- Confirm password -->
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <div class="input-wrapper">
+                    <input
+                        type="password"
+                        id="confirm_password"
+                        name="confirm_password"
+                        class="form-control{% if errors.confirm_password %} is-invalid{% endif %}"
+                        placeholder="Enter the same password again"
+                        required
+                        maxlength="64"
+                        autocomplete="new-password"
+                        data-validate="confirm-password"
+                        data-match="password"
+                    >
+                    <button type="button" class="toggle-password" data-target="confirm_password"
+                            aria-label="Show password">Show</button>
+                </div>
+                <p class="field-error" id="confirm_password-error">{{ errors.confirm_password|default:'' }}</p>
+            </div>
 
-<input
-    type="password"
-    id="confirm_password"
-    name="confirm_password"
-    placeholder="Enter password again"
-    required
-    minlength="8"
-    maxlength="128"
-    autocomplete="new-password"
->
+            <button type="submit" class="login-button">
+                Create Account →
+            </button>
+        </form>
 
-{% if errors.confirm_password %}
-    <p class="error">{{ errors.confirm_password }}</p>
-{% endif %}
+        <div class="login-links">
+            <p>
+                Already registered?
+                <a href="{% url 'distributor_login' %}">Distributor Login</a>
+            </p>
 
-    <button type="submit" class="register-button">
-        Register
-    </button>
-</form>
-
-        <div class="register-footer">
-            Already registered?
-            <a href="{% url 'distributor_login' %}">Distributor Login</a>
-            <br>
-            <a href="/">← Back to Home</a>
+            <p>
+                <a href="{% url 'home' %}">← Back to Home</a>
+            </p>
         </div>
 
-        <footer>Secure billing management · BillFlow</footer>
+        <div class="login-footer">
+            Secure billing management · BillFlow
+        </div>
 
     </main>
 
+</div>
+
+<script src="{% static 'js/login.js' %}?v=2"></script>
+<script src="{% static 'js/form_validation.js' %}?v=2"></script>
 </body>
 </html>

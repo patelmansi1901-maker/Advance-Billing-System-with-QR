@@ -1,3 +1,4 @@
+{% load static %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -5,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Decoded Invoice Details</title>
+    <title>Scan Invoice QR | BillFlow</title>
 
     <style>
         * {
@@ -245,10 +246,12 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body>
-
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 <div class="container">
 
     <!-- Django Toast Messages -->
@@ -423,6 +426,8 @@
 
     });
 </script>
+
+</div>
 
 </body>
 </html>

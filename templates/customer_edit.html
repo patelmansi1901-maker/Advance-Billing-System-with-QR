@@ -1,10 +1,11 @@
+{% load static %}
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Customer | Billing System</title>
+    <title>Edit Customer | BillFlow</title>
 
     <style>
         * {
@@ -125,9 +126,12 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body>
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 <div class="container">
     <h1>Edit Customer</h1>
     <p class="subtitle">Update the customer's information below.</p>
@@ -199,5 +203,7 @@
         </div>
     </form>
 </div>
+</div>
+
 </body>
 </html>

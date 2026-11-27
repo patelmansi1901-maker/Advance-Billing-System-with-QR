@@ -650,8 +650,8 @@
             <a class="nav-link" href="{% url 'distributor_register' %}">
                 Create Account
             </a>
-            <a class="nav-button" href="{% url 'admin_login' %}">
-                Admin Login ↗
+            <a class="nav-button" href="{% url 'distributor_login' %}">
+                Login ↗
             </a>
         </nav>
     </header>
@@ -679,7 +679,7 @@
                     </p>
 
                     <div class="hero-buttons">
-                        <a href="{% url 'admin_login' %}"
+                        <a href="{% url 'distributor_register' %}"
                            class="button button-primary">
                             Get Started <span>→</span>
                         </a>
@@ -823,8 +823,8 @@
                     <div class="feature-icon">⌘</div>
                     <h3>Role-Based Access</h3>
                     <p>
-                        Separate administrator and distributor entry points
-                        for a more structured application.
+                        Each user sees only the pages and records that
+                        belong to their role.
                     </p>
                 </article>
 
@@ -865,8 +865,8 @@
         <div>© 2026 BillFlow. Built with Python &amp; Django.</div>
 
         <div class="footer-links">
-            <a href="{% url 'admin_login' %}">Admin</a>
-            <a href="{% url 'distributor_login' %}">Distributor</a>
+            <a href="{% url 'distributor_login' %}">Login</a>
+            <a href="{% url 'distributor_register' %}">Create Account</a>
             <a href="#features">Features</a>
         </div>
     </footer>

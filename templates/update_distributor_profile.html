@@ -1,4 +1,3 @@
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -6,182 +5,170 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Profile | BillFlow</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
     <style>
-        .edit-page {
-            min-height: 100vh;
-            padding: 40px 20px;
-            box-sizing: border-box;
-        }
-
         .edit-card {
-            max-width: 560px;
-            margin: 25px auto;
-            padding: 32px;
-            box-sizing: border-box;
+            max-width: 580px;
+            margin: 0 auto;
         }
 
-        .edit-card label {
+        .form-field {
+            margin-bottom: 16px;
+        }
+
+        .form-field label {
             display: block;
-            margin: 16px 0 8px;
-            font-weight: 600;
-        }
-
-        .edit-card input {
-            width: 100%;
-            padding: 13px;
-            box-sizing: border-box;
-            border: 1px solid #cbd5e1;
-            border-radius: 9px;
-            font-size: 15px;
-        }
-
-        .edit-card input:focus {
-            outline: 2px solid #14b8a6;
-            border-color: #14b8a6;
-        }
-
-        .error {
-            color: #dc2626;
+            margin-bottom: 7px;
             font-size: 13px;
-            margin: 6px 0;
-        }
-
-        .edit-button {
-            width: 100%;
-            margin-top: 24px;
-            padding: 14px;
-            border: none;
-            border-radius: 9px;
-            background: #0d9488;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .edit-button:hover {
-            background: #0f766e;
-        }
-
-        .edit-message {
-            padding: 12px;
-            margin: 12px 0;
-            border-radius: 8px;
-        }
-
-        .edit-message.error {
-            background: #fee2e2;
-        }
-
-        .edit-footer {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .edit-footer a {
-            color: #0d9488;
-            text-decoration: none;
             font-weight: 600;
         }
 
-        @media (max-width: 480px) {
-            .edit-card {
-                padding: 22px;
-            }
+        .form-field input {
+            width: 100%;
+        }
+
+        .field-hint {
+            margin: 6px 0 0;
+            color: var(--bf-muted);
+            font-size: 12px;
+        }
+
+        .field-error {
+            margin: 6px 0 0;
+            color: #c62f3d;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .field-error:empty {
+            display: none;
+        }
+
+        body.app-page input.is-invalid {
+            border-color: #e05261;
+            box-shadow: 0 0 0 3px rgba(224, 82, 97, 0.12);
+        }
+
+        body.app-page input.is-valid {
+            border-color: #3bb58a;
+        }
+
+        .edit-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .edit-actions .bf-btn {
+            padding: 12px 20px;
+            font-size: 14px;
+        }
+
+        .edit-actions button.bf-btn {
+            border: none;
+        }
+
+        .edit-actions button.bf-btn:disabled {
+            opacity: 0.7;
+            cursor: wait;
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body class="login-page edit-page">
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 
-    <main class="login-card edit-card">
+    <main class="bf-card edit-card">
 
-        <a class="brand" href="/">
-            <span class="brand-icon">QR</span>
-            <span>BillFlow</span>
-        </a>
-
-        <p class="eyebrow">DISTRIBUTOR ACCOUNT</p>
-        <h1>Edit Your Profile</h1>
-        <p>Update your registered information below.</p>
+        <p class="bf-eyebrow">Distributor Account</p>
+        <h1 class="bf-title">Edit Your Profile</h1>
+        <p class="bf-subtitle">Update your registered information below.</p>
 
         {% if messages %}
             {% for message in messages %}
-                <div class="edit-message {{ message.tags }}" role="alert">
+                <div class="bf-alert {{ message.tags }}" role="alert">
                     {{ message }}
                 </div>
             {% endfor %}
         {% endif %}
 
         {% if errors.general %}
-            <p class="error">{{ errors.general }}</p>
+            <div class="bf-alert error" role="alert">{{ errors.general }}</div>
         {% endif %}
 
-        <form method="post" action="{% url 'update_distributor_profile' %}">
+        <form method="post"
+              action="{% url 'update_distributor_profile' %}"
+              data-live-validate>
             {% csrf_token %}
 
-            <label for="name">Full Name</label>
-            <input
-                type="text"
-                id="name"
-                name="name"
-                value="{{ values.name }}"
-                required
-                minlength="2"
-                maxlength="100"
-                pattern="[A-Za-z][A-Za-z '\-]*"
-                title="Enter a valid name."
-                autocomplete="name"
-            >
-            {% if errors.name %}
-                <p class="error">{{ errors.name }}</p>
-            {% endif %}
+            <div class="form-field">
+                <label for="name">Full Name</label>
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value="{{ values.name }}"
+                    placeholder="e.g. Mansi Patel"
+                    required
+                    minlength="3"
+                    maxlength="100"
+                    autocomplete="name"
+                    data-validate="full-name"
+                >
+                <p class="field-hint">First and last name, letters only.</p>
+                <p class="field-error" id="name-error">{{ errors.name|default:'' }}</p>
+            </div>
 
-            <label for="email">Email Address</label>
-            <input
-                type="email"
-                id="email"
-                name="email"
-                value="{{ values.email }}"
-                required
-                maxlength="254"
-                autocomplete="email"
-            >
-            {% if errors.email %}
-                <p class="error">{{ errors.email }}</p>
-            {% endif %}
+            <div class="form-field">
+                <label for="email">Email Address</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value="{{ values.email }}"
+                    placeholder="you@example.com"
+                    required
+                    maxlength="254"
+                    autocomplete="email"
+                    data-validate="email"
+                >
+                <p class="field-error" id="email-error">{{ errors.email|default:'' }}</p>
+            </div>
 
-            <label for="phone">Phone Number</label>
-            <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value="{{ values.phone }}"
-                required
-                pattern="[0-9]{10}"
-                maxlength="10"
-                inputmode="numeric"
-                title="Enter exactly 10 digits."
-                autocomplete="tel"
-            >
-            {% if errors.phone %}
-                <p class="error">{{ errors.phone }}</p>
-            {% endif %}
+            <div class="form-field">
+                <label for="phone">Mobile Number</label>
+                <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value="{{ values.phone }}"
+                    placeholder="10-digit mobile number"
+                    required
+                    pattern="[6-9][0-9]{9}"
+                    minlength="10"
+                    maxlength="10"
+                    inputmode="numeric"
+                    autocomplete="tel"
+                    title="Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
+                    data-validate="mobile"
+                >
+                <p class="field-hint">10 digits, starting with 6, 7, 8 or 9.</p>
+                <p class="field-error" id="phone-error">{{ errors.phone|default:'' }}</p>
+            </div>
 
-            <button type="submit" class="edit-button">
-                Save Changes
-            </button>
+            <div class="edit-actions">
+                <button type="submit" class="bf-btn">Save Changes</button>
+                <a href="{% url 'distributor_profile' %}" class="bf-btn bf-btn-light">Cancel</a>
+            </div>
         </form>
-
-        <div class="edit-footer">
-            <a href="{% url 'distributor_profile' %}">
-                ← Back to My Profile
-            </a>
-        </div>
 
     </main>
 
+</div>
+
+<script src="{% static 'js/form_validation.js' %}?v=2"></script>
 </body>
 </html>

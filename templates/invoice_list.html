@@ -1,359 +1,291 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice List | Advanced Billing System</title>
+    <title>Invoices | BillFlow</title>
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            background: #f3f6fb;
-            padding: 30px;
-            color: #243247;
-        }
-
         .container {
-            max-width: 1400px;
-            margin: auto;
+            max-width: 1320px;
+            margin: 0 auto;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-end;
             flex-wrap: wrap;
             gap: 15px;
-            margin-bottom: 25px;
+            margin-bottom: 22px;
         }
 
         .header h1 {
-            color: #173b72;
+            margin: 0;
             font-size: 28px;
         }
 
         .header p {
-            color: #6b7280;
-            margin-top: 7px;
+            margin: 6px 0 0;
+            color: var(--bf-muted);
         }
 
         .table-card {
-            background: white;
-            padding: 22px;
-            border-radius: 12px;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+            background: #ffffff;
+            border: 1px solid var(--bf-line);
+            border-radius: 14px;
+            box-shadow: var(--bf-shadow);
             overflow-x: auto;
         }
 
         table {
             width: 100%;
-            border-collapse: collapse;
-            min-width: 1050px;
+            min-width: 1080px;
         }
 
-        th, td {
-            padding: 15px 12px;
-            text-align: center;
-            border-bottom: 1px solid #e8edf4;
+        th,
+        td {
+            padding: 14px 12px;
+            text-align: left;
+            vertical-align: top;
             font-size: 14px;
         }
 
-        th {
-            background: #173b72;
-            color: white;
-            font-weight: 600;
-        }
-
-        tr:hover {
-            background: #f5f8ff;
+        td.num,
+        th.num {
+            text-align: right;
+            white-space: nowrap;
         }
 
         .invoice-number {
-            font-weight: bold;
-            color: #173b72;
+            color: var(--bf-ink);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .muted {
+            color: var(--bf-muted);
+            font-size: 12px;
+        }
+
+        .item-line {
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .item-line:last-child {
+            margin-bottom: 0;
         }
 
         .amount {
-            font-weight: bold;
-            color: #16834b;
+            color: #11875a;
+            font-weight: 800;
+        }
+
+        .qr-cell {
+            text-align: center;
         }
 
         .qr-image {
-            width: 100px;
-            height: 100px;
-            object-fit: contain;
-            border: 1px solid #e5e7eb;
-            padding: 5px;
-            border-radius: 6px;
+            display: block;
+            width: 84px;
+            height: 84px;
+            margin: 0 auto 6px;
+            padding: 4px;
+            border: 1px solid var(--bf-line);
+            border-radius: 8px;
+            background: #ffffff;
         }
 
-        .qr-button {
-            display: inline-block;
-            margin-top: 7px;
-            padding: 7px 12px;
-            background: #173b72;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
+        .qr-download {
+            color: var(--bf-blue);
             font-size: 12px;
-            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .qr-download:hover {
+            text-decoration: underline;
+        }
+
+        .row-actions {
+            display: grid;
+            gap: 6px;
+            min-width: 118px;
         }
 
         .pagination {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 15px;
-            margin-top: 25px;
-        }
-
-        .pagination a {
-            text-decoration: none;
-            padding: 9px 16px;
-            background: #173b72;
-            color: white;
-            border-radius: 5px;
-        }
-
-        .pagination a:hover {
-            background: #2457a0;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 20px;
         }
 
         .pagination span {
-            font-weight: bold;
-            color: #374151;
+            color: var(--bf-muted);
+            font-weight: 600;
         }
 
         .empty {
-            padding: 35px;
+            padding: 40px 20px;
             text-align: center;
-            color: #777;
+            color: var(--bf-muted);
         }
 
         @media (max-width: 600px) {
-            body {
-                padding: 12px;
-            }
-
             .header h1 {
-                font-size: 22px;
+                font-size: 23px;
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body>
-
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 <div class="container">
 
     <div class="header">
         <div>
-            <h1>Invoice Management</h1>
-            <p>View all invoices and their generated QR codes.</p>
+            <h1>Invoices</h1>
+            <p>
+                {% if request.user.is_staff %}
+                    Every invoice in the system with its QR code.
+                {% else %}
+                    Invoices you have created, with their QR codes.
+                {% endif %}
+            </p>
         </div>
+
+        {% if not request.user.is_staff %}
+            <a href="{% url 'invoice_create' %}" class="bf-btn">+ New Invoice</a>
+        {% endif %}
     </div>
 
+    <div class="table-card">
 
-<div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Invoice</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Products</th>
+                    <th class="num">Subtotal</th>
+                    <th class="num">GST</th>
+                    <th class="num">Total</th>
+                    <th>QR Code</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Invoice Number</th>
-                <th>Customer Name</th>
-                <th>Invoice Date</th>
-                <th>Product Summary</th>
-                <th>Product Count</th>
-                <th>Subtotal</th>
-                <th>GST</th>
-                <th>Total Bill</th>
-                <th>QR Code</th>
-                <th>Preview</th>
-                <th>PDF</th>
-            </tr>
-        </thead>
+            <tbody>
 
-        <tbody>
+                {% for invoice in invoices %}
 
-            {% for invoice in invoices %}
+                <tr>
+                    <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
 
-            <tr>
+                    <td class="invoice-number">{{ invoice.invoice_number }}</td>
 
-                <td>
-                    {{ forloop.counter0|add:page_obj.start_index }}
-                </td>
+                    <td>{{ invoice.customer.name }}</td>
 
-                <td>
-                    <strong>{{ invoice.invoice_number }}</strong>
-                </td>
+                    <td style="white-space: nowrap;">{{ invoice.invoice_date|date:"d M Y" }}</td>
 
-                <td>
-                    {{ invoice.customer.name }}
-                </td>
-
-                <td>
-                    {{ invoice.invoice_date|date:"d-m-Y" }}
-                </td>
-
-                <!-- Dynamic Product Summary -->
-                <td style="text-align:left; min-width:200px;">
-
-                    {% for item in invoice.items.all %}
-
-                        <div style="margin-bottom:8px;">
-                            <strong>{{ item.product.name }}</strong>
-                            <br>
-
-                            <small>
-                                Quantity: {{ item.quantity }}
-                            </small>
-                            <br>
-
-                            <small>
-                                Price: ₹{{ item.price }}
-                            </small>
-                            <br>
-
-                            <small>
-                                Item Total: ₹{{ item.total }}
-                            </small>
+                    <!-- Product summary -->
+                    <td style="min-width: 210px;">
+                        {% for item in invoice.items.all %}
+                            <div class="item-line">
+                                <strong>{{ item.product.name }}</strong><br>
+                                <span class="muted">
+                                    {{ item.quantity }} × ₹{{ item.price }} = ₹{{ item.total }}
+                                </span>
+                            </div>
+                        {% empty %}
+                            <span class="muted">No products</span>
+                        {% endfor %}
+                        <div class="muted" style="margin-top: 6px;">
+                            {{ invoice.product_count }} product{{ invoice.product_count|pluralize }}
                         </div>
+                    </td>
 
-                    {% empty %}
+                    <td class="num">₹{{ invoice.subtotal }}</td>
 
-                        No products
+                    <td class="num">₹{{ invoice.gst_amount }}</td>
 
-                    {% endfor %}
+                    <td class="num amount">₹{{ invoice.grand_total }}</td>
 
-                </td>
-
-                <td>
-                    {{ invoice.product_count }}
-                </td>
-
-                <td>
-                    ₹{{ invoice.subtotal }}
-                </td>
-
-                <td>
-                    ₹{{ invoice.gst_amount }}
-                </td>
-
-                <td>
-                    <strong style="color:green;">
-                        ₹{{ invoice.grand_total }}
-                    </strong>
-                </td>
-
-                <!-- Dynamic QR Code -->
-                <td>
-
-                    {% if invoice.qr_code %}
-
-                        <img
-                            src="data:image/png;base64,{{ invoice.qr_code }}"
-                            alt="Invoice QR"
-                            width="90"
-                            height="90"
-                        >
-
-                        <br>
-
-                        <a
-                            href="data:image/png;base64,{{ invoice.qr_code }}"
-                            download="invoice_{{ invoice.invoice_number }}_QR.png"
-                            class="qr-button"
-                        >
-                            Download QR
-                        </a>
-
-                         <!-- Invoice Preview Button -->
-                        <td>
-                            <a href="{% url 'invoice_preview' invoice.id %}"
-                            class="btn btn-primary">
-                                Preview Invoice
+                    <!-- QR code -->
+                    <td class="qr-cell">
+                        {% if invoice.qr_code %}
+                            <img
+                                src="data:image/png;base64,{{ invoice.qr_code }}"
+                                alt="QR code for {{ invoice.invoice_number }}"
+                                class="qr-image"
+                            >
+                            <a
+                                href="data:image/png;base64,{{ invoice.qr_code }}"
+                                download="invoice_{{ invoice.invoice_number }}_QR.png"
+                                class="qr-download"
+                            >
+                                ⤓ Download QR
                             </a>
-                        </td>
+                        {% else %}
+                            <span class="muted">QR not available</span>
+                        {% endif %}
+                    </td>
 
-                        <td>
-                            <a href="{% url 'invoice_pdf' invoice.id %}"
-                            class="qr-button">
-                                Download PDF
-                            </a>
-                        </td>
-                        <td>
-                            <a href="{% url 'invoice_details' invoice.id %}">
-                                View Details
-                            </a>
-                        </td>
-                    {% else %}
+                    <!-- Actions -->
+                    <td>
+                        <div class="row-actions">
+                            <a href="{% url 'invoice_preview' invoice.id %}" class="bf-btn bf-btn-sm">Preview</a>
+                            <a href="{% url 'invoice_pdf' invoice.id %}" class="bf-btn bf-btn-light bf-btn-sm">Download PDF</a>
+                            <a href="{% url 'invoice_details' invoice.id %}" class="bf-btn bf-btn-light bf-btn-sm">View Details</a>
+                        </div>
+                    </td>
+                </tr>
 
-                        QR Not Available
+                {% empty %}
 
-                    {% endif %}
+                <tr>
+                    <td colspan="10" class="empty">
+                        No invoices yet.
+                        {% if not request.user.is_staff %}
+                            <a href="{% url 'invoice_create' %}">Create your first invoice</a>.
+                        {% endif %}
+                    </td>
+                </tr>
 
-                </td>
+                {% endfor %}
 
-            </tr>
+            </tbody>
+        </table>
 
-            {% empty %}
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1" class="bf-btn bf-btn-light bf-btn-sm">« First</a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="bf-btn bf-btn-light bf-btn-sm">‹ Previous</a>
+            {% endif %}
 
-            <tr>
-                <td colspan="11" class="empty">
-                    No invoice records found.
-                </td>
-            </tr>
+            <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
 
-            {% endfor %}
-
-        </tbody>
-    </table>
-
-    <!-- Pagination -->
-    {% if page_obj.has_other_pages %}
-
-    <div class="pagination">
-
-        {% if page_obj.has_previous %}
-
-            <a href="?page=1">First</a>
-
-            <a href="?page={{ page_obj.previous_page_number }}">
-                Previous
-            </a>
-
-        {% endif %}
-
-        <span>
-            Page {{ page_obj.number }}
-            of {{ page_obj.paginator.num_pages }}
-        </span>
-
-        {% if page_obj.has_next %}
-
-            <a href="?page={{ page_obj.next_page_number }}">
-                Next
-            </a>
-
-            <a href="?page={{ page_obj.paginator.num_pages }}">
-                Last
-            </a>
-
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="bf-btn bf-btn-light bf-btn-sm">Next ›</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}" class="bf-btn bf-btn-light bf-btn-sm">Last »</a>
+            {% endif %}
+        </div>
         {% endif %}
 
     </div>
-
-    {% endif %}
 
 </div>
-
-
 </div>
 
 </body>

@@ -1,243 +1,426 @@
 
+{% load static %}
+
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-
-    <title>Invoice PDF</title>
+    <title>Invoice - Advance Billing System with QR</title>
 
     <style>
         @page {
             size: A4;
-            margin: 25px;
+            margin: 25px 30px;
         }
 
         body {
             font-family: Helvetica, Arial, sans-serif;
-            font-size: 11px;
-            color: #222222;
+            font-size: 10px;
+            color: #263445;
+            background-color: #ffffff;
         }
 
-        .header {
+        .invoice-wrapper {
             width: 100%;
-            border-bottom: 2px solid #2563eb;
-            padding-bottom: 12px;
         }
 
-        .title {
-            color: #2563eb;
-            font-size: 25px;
+        .top-line {
+            height: 7px;
+            background-color: #12304a;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 22px;
+            margin-bottom: 25px;
+        }
+
+        .header-table td {
+            vertical-align: top;
+            width: 50%;
+        }
+
+        .brand-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #12304a;
+            margin-bottom: 5px;
+        }
+
+        .brand-subtitle {
+            font-size: 9px;
+            color: #159a9c;
+        }
+
+        .invoice-heading {
+            text-align: right;
+            font-size: 27px;
+            font-weight: bold;
+            color: #12304a;
+        }
+
+        .invoice-number {
+            text-align: right;
+            color: #159a9c;
+            font-size: 11px;
+            margin-top: 6px;
+        }
+
+        .section-title {
+            color: #12304a;
+            font-size: 11px;
+            font-weight: bold;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #159a9c;
+            margin-bottom: 10px;
+        }
+
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 23px;
+        }
+
+        .details-table td {
+            width: 50%;
+            vertical-align: top;
+            padding: 10px;
+            background-color: #f4f7fa;
+        }
+
+        .field-label {
+            color: #788899;
+            font-size: 9px;
+            margin-bottom: 4px;
+        }
+
+        .field-value {
+            color: #263445;
+            font-size: 10px;
             font-weight: bold;
         }
 
-        .subtitle {
-            font-size: 11px;
-            color: #555555;
-        }
-
-        .details {
+        .items-table {
             width: 100%;
-            margin-top: 25px;
+            border-collapse: collapse;
+            margin-top: 12px;
             margin-bottom: 20px;
         }
 
-        .details td {
-            width: 50%;
-            vertical-align: top;
-            padding: 8px;
+        .items-table th {
+            background-color: #12304a;
+            color: #ffffff;
+            font-size: 9px;
+            padding: 11px 6px;
+            text-align: center;
         }
 
-        h3 {
-            color: #2563eb;
-            font-size: 13px;
+        .items-table td {
+            padding: 11px 6px;
+            border-bottom: 1px solid #e1e7ed;
+            font-size: 9px;
+            text-align: center;
         }
 
-        table.products {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        .products th {
-            background-color: #2563eb;
-            color: white;
-            padding: 9px;
-            text-align: left;
-        }
-
-        .products td {
-            border: 1px solid #dddddd;
-            padding: 9px;
-        }
-
-        .total {
-            width: 40%;
-            margin-left: 60%;
-            margin-top: 20px;
-        }
-
-        .total td {
-            padding: 8px;
-            border-bottom: 1px solid #dddddd;
-        }
-
-        .grand-total {
-            color: #2563eb;
-            font-size: 15px;
+        .product-name {
+            text-align: left !important;
             font-weight: bold;
         }
 
-        .qr-section {
-            text-align: center;
-            margin-top: 25px;
+        .totals-table {
+            width: 48%;
+            margin-left: 52%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
         }
 
-        .qr-section img {
-            width: 125px;
-            height: 125px;
+        .totals-table td {
+            padding: 9px 7px;
+            border-bottom: 1px solid #e1e7ed;
+            font-size: 10px;
+        }
+
+        .total-label {
+            color: #657789;
+        }
+
+        .total-value {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .grand-total td {
+            background-color: #12304a;
+            color: #ffffff;
+            font-size: 13px;
+            padding: 13px 8px;
+        }
+
+        .qr-section {
+            width: 100%;
+            margin-top: 20px;
+            border-top: 1px solid #dce4eb;
+            padding-top: 15px;
+        }
+
+        .qr-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .qr-table td {
+            vertical-align: middle;
+            padding: 8px;
+        }
+
+        .qr-title {
+            color: #12304a;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        .qr-description {
+            color: #788899;
+            font-size: 9px;
+            line-height: 16px;
+        }
+
+        .qr-image {
+            width: 105px;
+            height: 105px;
         }
 
         .footer {
-            text-align: center;
             margin-top: 25px;
-            color: #666666;
+            padding-top: 12px;
+            border-top: 2px solid #159a9c;
+            text-align: center;
+            color: #788899;
+            font-size: 9px;
+            line-height: 16px;
+        }
+
+        .thank-you {
+            color: #12304a;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .muted {
+            color: #788899;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Invoice Header -->
-    <table class="header">
+<div class="invoice-wrapper">
+
+    <div class="top-line"></div>
+
+    <!-- BUSINESS HEADER -->
+    <table class="header-table">
         <tr>
             <td>
-                <div class="title">INVOICE</div>
-                <div class="subtitle">
-                    Advance Billing System with QR
+                <div class="brand-name">ADVANCE BILLING</div>
+
+                <div class="brand-subtitle">
+                    BILLING SYSTEM WITH QR
                 </div>
+
+                <p class="muted">
+                    Smart Billing. Simple Business.
+                </p>
             </td>
 
-            <td align="right">
-                <strong>Invoice No:</strong>
-                {{ invoice.invoice_number }}
+            <td>
+                <div class="invoice-heading">INVOICE</div>
 
-                <br><br>
+                <div class="invoice-number">
+                    {{ invoice.invoice_number }}
+                </div>
 
-                <strong>Date:</strong>
-                {{ invoice_date_text }}
+                <p style="text-align:right; color:#788899;">
+                    Invoice Date:
+                    {{ invoice.invoice_date|date:"d M Y" }}
+                </p>
             </td>
         </tr>
     </table>
 
-    <!-- Customer and Distributor Details -->
-    <table class="details">
+    <!-- CUSTOMER AND DISTRIBUTOR DETAILS -->
+    <div class="section-title">
+        BILLING INFORMATION
+    </div>
+
+    <table class="details-table">
         <tr>
             <td>
-                <h3>Customer Details</h3>
+                <div class="field-label">BILL TO</div>
 
-                <strong>Name:</strong>
-                {{ invoice.customer.name }}
+                <div class="field-value">
+                    {{ invoice.customer.name }}
+                </div>
+
+                <p>{{ invoice.customer.address }}</p>
+
+                <p>
+                    {{ invoice.customer.city }},
+                    {{ invoice.customer.state }}
+                </p>
+
+                <p>Phone: {{ invoice.customer.phone }}</p>
+                <p>Email: {{ invoice.customer.email }}</p>
+
+                <p>
+                    GSTIN: {{ invoice.customer.gst_number|default:"N/A" }}
+                </p>
             </td>
 
             <td>
-                <h3>Distributor Details</h3>
+                <div class="field-label">ISSUED BY</div>
 
-                <strong>Name:</strong>
-                {{ invoice.distributor.username }}
+                <div class="field-value">
+                    {{ invoice.distributor.username }}
+                </div>
+
+                <p>Invoice No: {{ invoice.invoice_number }}</p>
+                <p>Status: Generated</p>
+
+                <p class="muted">
+                    Thank you for choosing our business.
+                </p>
             </td>
         </tr>
     </table>
 
-    <!-- Product Details -->
-    <h3>Product Details</h3>
+    <!-- PRODUCT DETAILS -->
+    <div class="section-title">
+        ITEM DESCRIPTION
+    </div>
 
-    <table class="products">
-
+    <table class="items-table">
         <thead>
             <tr>
-                <th>Sr.</th>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>GST %</th>
-                <th>Total</th>
+                <th style="width:7%;">No.</th>
+                <th style="width:27%;">Product</th>
+                <th style="width:12%;">Qty</th>
+                <th style="width:16%;">Price</th>
+                <th style="width:13%;">GST</th>
+                <th style="width:25%;">Amount</th>
             </tr>
         </thead>
 
         <tbody>
-
-            {% for item in invoice_items %}
-
+            {% for item in items %}
             <tr>
                 <td>{{ forloop.counter }}</td>
 
-                <td>
+                <td class="product-name">
                     {{ item.product.name }}
                 </td>
 
-                <td>
-                    {{ item.quantity }}
-                </td>
+                <td>{{ item.quantity }}</td>
+
+                <td>Rs. {{ item.price|floatformat:2 }}</td>
+
+                <td>{{ item.gst_rate }}%</td>
 
                 <td>
-                    Rs. {{ item.price }}
-                </td>
-
-                <td>
-                    {{ item.gst_rate }}%
-                </td>
-
-                <td>
-                    Rs. {{ item.total }}
+                    Rs. {{ item.total|floatformat:2 }}
                 </td>
             </tr>
-
             {% empty %}
-
             <tr>
-                <td colspan="6">
-                    No products found.
-                </td>
+                <td colspan="6">No products found.</td>
             </tr>
-
             {% endfor %}
-
         </tbody>
     </table>
 
-    <!-- Invoice Total -->
-    <table class="total">
+    <!-- BILL TOTAL -->
+    <table class="totals-table">
+        <tr>
+            <td class="total-label">Subtotal</td>
 
-        <tr class="grand-total">
-            <td>Grand Total</td>
-
-            <td align="right">
-                Rs. {{ invoice.grand_total }}
+            <td class="total-value">
+                Rs. {{ invoice.subtotal|floatformat:2 }}
             </td>
         </tr>
 
+        <tr>
+            <td class="total-label">GST Amount</td>
+
+            <td class="total-value">
+                Rs. {{ invoice.gst_amount|floatformat:2 }}
+            </td>
+        </tr>
+
+        <tr class="grand-total">
+            <td>GRAND TOTAL</td>
+
+            <td class="total-value">
+                Rs. {{ invoice.grand_total|floatformat:2 }}
+            </td>
+        </tr>
     </table>
 
-    <!-- QR Code -->
+    <!-- QR CODE -->
     <div class="qr-section">
+        <table class="qr-table">
+            <tr>
+                <td style="width:65%;">
+                    <div class="qr-title">
+                        Invoice Verification
+                    </div>
 
-        <h3>Invoice QR Code</h3>
+                    <div class="qr-description">
+                        Scan this QR code to view the
+                        original invoice information.
 
-        <img
-            src="data:image/png;base64,{{ qr_code }}"
-            alt="Invoice QR Code"
-        />
+                        <br><br>
 
-        <p>Scan QR code to view invoice information.</p>
+                        Invoice Reference:
+                        {{ invoice.invoice_number }}
 
+                        <br><br>
+
+                        Keep this QR code for future reference.
+                    </div>
+                </td>
+
+                <td style="width:35%; text-align:right;">
+                    {% if qr_code_data %}
+                    <img
+                        src="{{ qr_code_data }}"
+                        class="qr-image"
+                        alt="Invoice QR Code"
+                    >
+                    {% else %}
+                    <p>QR code unavailable.</p>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <!-- Footer -->
+    <!-- FOOTER -->
     <div class="footer">
-        Thank you for your business!
+        <div class="thank-you">
+            Thank You For Your Business!
+        </div>
+
+        This invoice was generated using
+        Advance Billing System with QR.
+
         <br>
-        Generated by Advance Billing System with QR
+
+        Please keep this invoice for your records.
     </div>
+
+</div>
 
 </body>
 </html>

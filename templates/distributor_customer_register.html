@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Customer Registration | Advance Billing System</title>
+    <title>Customer Registration | BillFlow</title>
 
     <style>
         * {
@@ -163,15 +163,17 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body>
-
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 <div class="container">
 
     <div class="header">
-        <h2>Advance Billing System with QR</h2>
-        <p>Distributor Panel | Customer Management</p>
+        <h2>Register Customer</h2>
+        <p>Distributor Panel · Customer Management</p>
     </div>
 
     <div class="form-card">
@@ -349,6 +351,8 @@
 
     });
 </script>
+
+</div>
 
 </body>
 </html>

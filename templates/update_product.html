@@ -1,10 +1,11 @@
+{% load static %}
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Update Product | Advance Billing System</title>
+    <title>Update Product | BillFlow</title>
 
     <style>
         * {
@@ -145,14 +146,12 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body>
-
-<header class="navbar">
-    QR <span>BillPro</span>
-</header>
-
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 <main class="container">
     <section class="card">
 
@@ -211,6 +210,8 @@
 
     </section>
 </main>
+
+</div>
 
 </body>
 </html>

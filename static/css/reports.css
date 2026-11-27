@@ -477,3 +477,9 @@ tbody tr:hover {
         width: 100%;
     }
 }
+
+.report-note {
+    margin: -6px 0 16px;
+    color: #6b7a93;
+    font-size: 14px;
+}

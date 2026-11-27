@@ -1,10 +1,11 @@
+{% load static %}
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Invoice | Advanced Billing System</title>
+    <title>Create Invoice | BillFlow</title>
 
     <style>
         * {
@@ -166,10 +167,12 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=2">
 </head>
 
-<body>
-
+<body class="app-page">
+{% include "includes/app_nav.html" %}
+<div class="app-content">
 <div class="container">
 
     <a href="javascript:history.back()" class="back-link">
@@ -603,6 +606,8 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 </script>
+
+</div>
 
 </body>
 </html>

@@ -416,3 +416,189 @@ class ProductValidationTests(TestCase):
             description="Electronic products",
             is_active=True
         )
+
+
+# ------------------------------------------------------------------
+# Review changes: registration validation, user-page links, access
+# ------------------------------------------------------------------
+
+from django.contrib.auth.models import Group
+
+User = get_user_model()
+
+from .models import Customer, DistributorProfile
+from .validators import (
+    validate_full_name,
+    validate_mobile,
+    validate_new_password,
+)
+
+
+class RegistrationValidatorTests(TestCase):
+
+    def test_full_name_rules(self):
+        self.assertIsNone(validate_full_name("Mansi Patel"))
+        self.assertIsNone(validate_full_name("Mary-Jane D'Souza"))
+
+        for bad in ["", "Ma", "Mansi", "Mansi 2", "Mansi  Patel",
+                    "Mansi--Patel", "Mansi_Patel", "-Mansi Patel"]:
+            self.assertIsNotNone(validate_full_name(bad), bad)
+
+    def test_mobile_rules(self):
+        self.assertIsNone(validate_mobile("9876543210"))
+        self.assertIsNone(validate_mobile("6123456789"))
+
+        for bad in ["", "987654321", "98765432100", "5876543210",
+                    "98765abc10", "9999999999"]:
+            self.assertIsNotNone(validate_mobile(bad), bad)
+
+    def test_password_rules(self):
+        self.assertIsNone(
+            validate_new_password("Bill@Flow2026", name="Mansi Patel",
+                                  email="mansi@example.com")
+        )
+
+        self.assertIn("uppercase", validate_new_password("bill@flow2026"))
+        self.assertIn("lowercase", validate_new_password("BILL@FLOW2026"))
+        self.assertIn("number", validate_new_password("Bill@Flowxyz"))
+        self.assertIn("special", validate_new_password("BillFlow2026"))
+        self.assertIn("8 characters", validate_new_password("B@f1"))
+        self.assertIn("spaces", validate_new_password("Bill @Flow2026"))
+        self.assertIn(
+            "mobile",
+            validate_new_password("Ab@9876543210", phone="9876543210"),
+        )
+
+
+class DistributorRegistrationTests(TestCase):
+
+    def setUp(self):
+        self.url = reverse("distributor_register")
+
+    def valid_data(self, **overrides):
+        data = {
+            "name": "  Mansi   Patel ",
+            "email": "Mansi.Patel@Example.com",
+            "phone": "9876543210",
+            "password": "Bill@Flow2026",
+            "confirm_password": "Bill@Flow2026",
+        }
+        data.update(overrides)
+        return data
+
+    def test_valid_registration_creates_distributor(self):
+        response = self.client.post(self.url, self.valid_data())
+
+        self.assertRedirects(response, reverse("distributor_login"))
+
+        user = User.objects.get(email="mansi.patel@example.com")
+        self.assertEqual(user.first_name, "Mansi")
+        self.assertEqual(user.last_name, "Patel")
+        self.assertTrue(user.check_password("Bill@Flow2026"))
+        self.assertTrue(user.groups.filter(name="Distributor").exists())
+        self.assertEqual(user.distributor_profile.phone, "9876543210")
+
+    def assert_field_error(self, field, **overrides):
+        response = self.client.post(self.url, self.valid_data(**overrides))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(field, response.context["errors"])
+        self.assertFalse(
+            User.objects.filter(email="mansi.patel@example.com").exists()
+        )
+
+    def test_single_word_name_rejected(self):
+        self.assert_field_error("name", name="Mansi")
+
+    def test_name_with_numbers_rejected(self):
+        self.assert_field_error("name", name="Mansi Patel2")
+
+    def test_mobile_must_start_with_6_to_9(self):
+        self.assert_field_error("phone", phone="1234567890")
+
+    def test_mobile_must_be_10_digits(self):
+        self.assert_field_error("phone", phone="98765")
+
+    def test_weak_password_rejected(self):
+        self.assert_field_error(
+            "password", password="password1", confirm_password="password1"
+        )
+
+    def test_password_mismatch_rejected(self):
+        self.assert_field_error("confirm_password", confirm_password="Other@2026")
+
+    def test_duplicate_mobile_rejected(self):
+        other = User.objects.create_user(
+            username="riya", email="riya@example.com", password="x"
+        )
+        DistributorProfile.objects.create(user=other, phone="9876543210")
+
+        self.assert_field_error("phone")
+
+    def test_entered_values_are_kept_after_error(self):
+        response = self.client.post(self.url, self.valid_data(phone="12"))
+
+        self.assertEqual(response.context["values"]["name"], "Mansi Patel")
+        self.assertContains(response, 'value="mansi.patel@example.com"')
+
+
+class UserPageLinkTests(TestCase):
+
+    def test_home_page_has_no_admin_login_link(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertNotContains(response, reverse("admin_login"))
+        self.assertContains(response, reverse("distributor_register"))
+
+    def test_distributor_login_links_to_register_not_admin(self):
+        response = self.client.get(reverse("distributor_login"))
+
+        self.assertNotContains(response, reverse("admin_login"))
+        self.assertContains(response, reverse("distributor_register"))
+
+    def test_distributor_forgot_password_returns_to_distributor_login(self):
+        response = self.client.get(reverse("forgot_password"))
+
+        self.assertNotContains(response, reverse("admin_login"))
+        self.assertContains(response, reverse("distributor_login"))
+        self.assertContains(response, 'name="action" value="request_otp"')
+
+
+class CustomerListAccessTests(TestCase):
+
+    def setUp(self):
+        group = Group.objects.create(name="Distributor")
+
+        self.dist_a = User.objects.create_user(
+            username="dist_a", email="a@example.com", password="Pass@12345"
+        )
+        self.dist_b = User.objects.create_user(
+            username="dist_b", email="b@example.com", password="Pass@12345"
+        )
+        self.dist_a.groups.add(group)
+        self.dist_b.groups.add(group)
+
+        customer_fields = {
+            "email": "c@example.com", "phone": "9876543210",
+            "address": "Main Road", "city": "Nadiad",
+            "state": "Gujarat", "postal_code": "387001",
+        }
+        Customer.objects.create(
+            name="Customer of A", distributor=self.dist_a, **customer_fields
+        )
+        Customer.objects.create(
+            name="Customer of B", distributor=self.dist_b, **customer_fields
+        )
+
+    def test_login_required(self):
+        response = self.client.get(reverse("customer_list"))
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_distributor_sees_only_own_customers(self):
+        self.client.force_login(self.dist_a)
+
+        response = self.client.get(reverse("customer_list"))
+
+        self.assertContains(response, "Customer of A")
+        self.assertNotContains(response, "Customer of B")
